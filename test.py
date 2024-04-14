@@ -51,51 +51,6 @@ last_frame = 0.0
 # Movement speed
 speed = 2.5 * 0.16
 
-# Cube vertices
-cube_vertices = np.array([
-    -0.5, -0.5, -0.5,
-    0.5, -0.5, -0.5,
-    0.5, 0.5, -0.5,
-    0.5, 0.5, -0.5,
-    -0.5, 0.5, -0.5,
-    -0.5, -0.5, -0.5,
-
-    -0.5, -0.5, 0.5,
-    0.5, -0.5, 0.5,
-    0.5, 0.5, 0.5,
-    0.5, 0.5, 0.5,
-    -0.5, 0.5, 0.5,
-    -0.5, -0.5, 0.5,
-
-    -0.5, 0.5, 0.5,
-    -0.5, 0.5, -0.5,
-    -0.5, -0.5, -0.5,
-    -0.5, -0.5, -0.5,
-    -0.5, -0.5, 0.5,
-    -0.5, 0.5, 0.5,
-
-    0.5, 0.5, 0.5,
-    0.5, 0.5, -0.5,
-    0.5, -0.5, -0.5,
-    0.5, -0.5, -0.5,
-    0.5, -0.5, 0.5,
-    0.5, 0.5, 0.5,
-
-    -0.5, -0.5, -0.5,
-    0.5, -0.5, -0.5,
-    0.5, -0.5, 0.5,
-    0.5, -0.5, 0.5,
-    -0.5, -0.5, 0.5,
-    -0.5, -0.5, -0.5,
-
-    -0.5, 0.5, -0.5,
-    0.5, 0.5, -0.5,
-    0.5, 0.5, 0.5,
-    0.5, 0.5, 0.5,
-    -0.5, 0.5, 0.5,
-    -0.5, 0.5, -0.5
-], dtype=np.float32)
-
 
 # Callback functions
 def framebuffer_size_callback(window, width, height):
@@ -203,8 +158,22 @@ def main():
     glDeleteShader(vertex_shader)
     glDeleteShader(fragment_shader)
 
-    # Vertex buffer object and vertex array object
-    def load_cube(vertices):
+    def load_obj(file_path):
+        vertices = []
+        faces = []
+
+        with open(file_path, 'r') as file:
+            for line in file:
+                if line.startswith('v '):
+                    vertex = list(map(float, line.strip().split()[1:]))
+                    vertices.append(vertex)
+                elif line.startswith('f '):
+                    face = [int(vertex.split('/')[0]) - 1 for vertex in line.strip().split()[1:]]
+                    faces.append(face)
+
+        return np.array(vertices, dtype=np.float32), np.array(faces, dtype=np.uint32)
+
+    def load_cube(vertices, faces):
         VBO = glGenBuffers(1)
         VAO = glGenVertexArrays(1)
         glBindVertexArray(VAO)
@@ -213,31 +182,48 @@ def main():
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), ctypes.c_void_p(0))
         glEnableVertexAttribArray(0)
         glBindBuffer(GL_ARRAY_BUFFER, 0)
+
+        # Create EBO (Element Buffer Object) for indices
+        EBO = glGenBuffers(1)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO)
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.nbytes, faces, GL_STATIC_DRAW)
+
         glBindVertexArray(0)
 
-        return VAO
+        return VAO, len(faces)
 
-    def draw_model(VAOS, shader_program, view, projection):
-        for VAO in VAOS:
-            # Set matrices
-            glUniformMatrix4fv(glGetUniformLocation(shader_program, "view"), 1, GL_FALSE, glm.value_ptr(view))
-            glUniformMatrix4fv(glGetUniformLocation(shader_program, "projection"), 1, GL_FALSE,
-                               glm.value_ptr(projection))
+    def draw_cube(cube_vao, num_faces):
+        glBindVertexArray(cube_vao)
+        glDrawElements(GL_TRIANGLES, num_faces * 3, GL_UNSIGNED_INT, None)
 
-            # Draw the component
-            glBindVertexArray(VAO)
-            num_vertices = len(VAO)
-            glDrawArrays(GL_TRIANGLES, 0, num_vertices)
+    # Load vertices and faces from OBJ file
+    vertices, faces = load_obj('models/cube.obj')
+
+    # Create VAO and VBO
+    cube_vao, num_faces = load_cube(vertices, faces)
 
     # Projection matrix
     projection = glm.perspective(glm.radians(fov), width / height, 0.1, 100.0)
 
-    n = 4
     a, b = -3, 3
-    rand_pos = [
-        glm.vec3(random.uniform(a, b), random.uniform(a, b), random.uniform(a, b)) for _ in range(n)
-    ]
-    cubes = [load_cube(cube_vertices) for _ in range(4)]
+
+    class Cube:
+        def __init__(self, cube_vao, num_faces):
+            self.VAO = cube_vao
+            self.num_faces = num_faces
+            self._pos = glm.vec3(random.uniform(a, b), random.uniform(a, b), random.uniform(a, b))
+
+        @property
+        def position(self):
+            return self._pos
+
+        def draw(self):
+            model = glm.translate(glm.mat4(1.0), self._pos)
+            glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, glm.value_ptr(model))
+            draw_cube(self.VAO, self.num_faces)
+
+    n = 4
+    cubes = [Cube(cube_vao, num_faces) for _ in range(n)]
 
     # Render loop
     while not glfw.window_should_close(window):
@@ -259,21 +245,9 @@ def main():
         glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, glm.value_ptr(model))
         glUniformMatrix4fv(glGetUniformLocation(shader_program, "view"), 1, GL_FALSE, glm.value_ptr(view))
         glUniformMatrix4fv(glGetUniformLocation(shader_program, "projection"), 1, GL_FALSE, glm.value_ptr(projection))
-        # Draw the cube
-        for pos, cube in zip(rand_pos, cubes):
-            # Set random position for each cube
-            # Translate model matrix
-            model = glm.translate(glm.mat4(1.0), pos)
 
-            # Set matrices
-            glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, glm.value_ptr(model))
-            glUniformMatrix4fv(glGetUniformLocation(shader_program, "view"), 1, GL_FALSE, glm.value_ptr(view))
-            glUniformMatrix4fv(glGetUniformLocation(shader_program, "projection"), 1, GL_FALSE,
-                               glm.value_ptr(projection))
-
-            # Draw the cube
-            glBindVertexArray(cube)
-            glDrawArrays(GL_TRIANGLES, 0, 36)
+        for cube in cubes:
+            cube.draw()
 
         # Swap front and back buffers
         glfw.swap_buffers(window)
