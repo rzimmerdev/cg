@@ -1,206 +1,317 @@
+import math
+
 import glfw
 from OpenGL.GL import *
-from OpenGL.GL.shaders import compileProgram, compileShader
-import numpy as np
 import glm
-from object import Object
-from teapot import teapot
+from PIL import Image
+import numpy as np
 
-# OBJ file path
-obj_path = "models/cube.obj"
+vertex_shader_source = """
+attribute vec3 position;
+                
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;        
+        
+void main(){
+    gl_Position = projection * view * model * vec4(position,1.0);
+}
+"""
 
-# Vertex shader source code - shaders/vertex.vs
-vertex_shader = open("shaders/vertex.cpp", "r").read()
+# Fragment Shader code
+fragment_shader_source = """
+uniform vec4 color;
+void main(){
+    gl_FragColor = color;
+}
+"""
 
-# Fragment shader source code - shaders/fragment.fs
-fragment_shader = open("shaders/fragment.cpp", "r").read()
+
+class ObjectLoader:
+    def __init__(self, model_dir='models/', texture_dir='textures/'):
+        self.model_dir = model_dir
+        self.texture_dir = texture_dir
+
+    def new(self, model_name, texture_name):
+        obj = Object()
+        obj.load(self.model_dir + model_name)
+        obj.load_texture(self.texture_dir + texture_name)
+
+        return obj
 
 
-class Window:
-    def __init__(self, width, height, title):
-        self.width = width
-        self.height = height
-        self.title = title
-        self.window = None
+class Object:
+    def __init__(self):
+        self.vertices = np.array([])
+        self.textures = np.array([])
+        self.faces = np.array([])
 
-    def create(self):
-        if not glfw.init():
-            return
+        self.position = glm.vec3(0, 0, 0)
+        self.rotation = glm.vec3(0, 0, 0)
+        self.scale = glm.vec3(1, 1, 1)
 
-        self.window = glfw.create_window(self.width, self.height, self.title, None, None)
-        if not self.window:
-            glfw.terminate()
-            return
+        self.texture = None
 
-        glfw.make_context_current(self.window)
-        glfw.set_framebuffer_size_callback(self.window, self.framebuffer_size_callback)
+    def load(self, path):
+        self.vertices = []
+        self.textures = []
+        self.faces = []
 
-        return True
+        with open(path, 'r') as file:
+            for line in file:
+                if line.startswith('v '):
+                    self.vertices.append(list(map(float, line.strip().split()[1:4])))
+                elif line.startswith('vt '):
+                    self.textures.append(list(map(float, line.strip().split()[1:3])))
+                elif line.startswith('f '):
+                    face = [list(map(int, vert.split('/'))) for vert in line.strip().split()[1:]]
+                    self.faces.append(face)
 
-    def framebuffer_size_callback(self, window, width, height):
-        glViewport(0, 0, width, height)
+        self.vertices = np.array(self.vertices)
+        self.textures = np.array(self.textures)
+        self.faces = np.array(self.faces)
 
-t_x_inc = 0
-t_y_inc = 0
+        return self.vertices, self.textures, self.faces
 
-angulo_x_inc = 0
-angulo_y_inc = 0
-angulo_z_inc = 0
+    def load_texture(self, file_path):
+        img = Image.open(file_path)
+        img_data = np.array(list(img.getdata()), np.uint8)
+        texture = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, texture)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img.width, img.height, 0, GL_RGB, GL_UNSIGNED_BYTE, img_data)
+        glGenerateMipmap(GL_TEXTURE_2D)
 
-s_inc = 1.0
+        self.texture = texture
+
+        return texture
+
+    @property
+    def mat_transform(self):
+        mat = glm.mat4(1)
+        mat = glm.translate(mat, self.position)
+        mat = glm.rotate(mat, self.rotation.x, glm.vec3(1, 0, 0))
+        mat = glm.rotate(mat, self.rotation.y, glm.vec3(0, 1, 0))
+        mat = glm.rotate(mat, self.rotation.z, glm.vec3(0, 0, 1))
+        mat = glm.scale(mat, self.scale)
+
+        return mat
+
+    def draw(self, program, camera):
+        # Set matrices and draw object with texture, face by face
+        model_loc = glGetUniformLocation(program, 'model')
+        view_loc = glGetUniformLocation(program, 'view')
+        projection_loc = glGetUniformLocation(program, 'projection')
+
+        glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm.value_ptr(self.mat_transform))
+        glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm.value_ptr(camera.get_view()))
+        glUniformMatrix4fv(projection_loc, 1, GL_FALSE, glm.value_ptr(camera.get_projection(800 / 600)))
+
+        glBindTexture(GL_TEXTURE_2D, self.texture)
+
+        for face in self.faces:
+            glBegin(GL_TRIANGLES)
+            for vert in face:
+                glVertex3fv(self.vertices[vert[0] - 1])
+            glEnd()
+
+    def move(self, x, y, z):
+        self.position = glm.vec3(x, y, z)
+
+
+class Camera:
+    def __init__(self):
+        self.position = glm.vec3(0, 0, 3)
+        self.front = glm.vec3(0, 0, -1)
+        self.up = glm.vec3(0, 1, 0)
+        self.right = glm.vec3(1, 0, 0)
+        self.world_up = glm.vec3(0, 1, 0)
+
+        self.yaw = -90
+        self.pitch = 0
+
+        self.fov = 45
+        self.near = 0.1
+        self.far = 100
+
+    def get_view(self):
+        return glm.lookAt(self.position, self.position + self.front, self.up)
+
+    def get_projection(self, aspect_ratio):
+        return glm.perspective(glm.radians(self.fov), aspect_ratio, self.near, self.far)
+
+    def get_clip(self):
+        return glm.vec4(self.near, self.far, 0, 0)
+
+    def mouse_callback(self, xpos, ypos):
+        sensitivity = 0.1
+        xpos *= sensitivity
+        ypos *= sensitivity
+
+        self.yaw += xpos
+        self.pitch += ypos
+
+        if self.pitch > 89:
+            self.pitch = 89
+        if self.pitch < -89:
+            self.pitch = -89
+
+    def key_callback(self, key, scancode, action, mods):
+        camera_speed = 0.05
+        if key == glfw.KEY_W:
+            self.position += self.front * camera_speed
+        if key == glfw.KEY_S:
+            self.position -= self.front * camera_speed
+        if key == glfw.KEY_A:
+            self.position -= glm.normalize(glm.cross(self.front, self.up)) * camera_speed
+        if key == glfw.KEY_D:
+            self.position += glm.normalize(glm.cross(self.front, self.up)) * camera_speed
+
+    def update_camera_vectors(self):
+        front = glm.vec3(0, 0, 0)
+        front.x = math.cos(glm.radians(self.yaw)) * math.cos(glm.radians(self.pitch))
+        front.y = math.sin(glm.radians(self.pitch))
+        front.z = math.sin(glm.radians(self.yaw)) * math.cos(glm.radians(self.pitch))
+        self.front = glm.normalize(front)
+
+        self.right = glm.normalize(glm.cross(self.front, self.world_up))
+        self.up = glm.normalize(glm.cross(self.right, self.front))
+
+
+class Graphics:
+    def __init__(self, window):
+        self.window = window
+        self.program = glCreateProgram()
+
+        vertex = glCreateShader(GL_VERTEX_SHADER)
+        fragment = glCreateShader(GL_FRAGMENT_SHADER)
+
+        glShaderSource(vertex, vertex_shader_source)
+        glShaderSource(fragment, fragment_shader_source)
+
+        glCompileShader(vertex)
+        if not glGetShaderiv(vertex, GL_COMPILE_STATUS):
+            error = glGetShaderInfoLog(vertex).decode()
+            print(error)
+            raise RuntimeError("Shader Compilation Error")
+
+        glCompileShader(fragment)
+        if not glGetShaderiv(fragment, GL_COMPILE_STATUS):
+            error = glGetShaderInfoLog(fragment).decode()
+            print(error)
+            raise RuntimeError("Shader Compilation Error")
+
+        glAttachShader(self.program, vertex)
+        glAttachShader(self.program, fragment)
+
+        glLinkProgram(self.program)
+        if not glGetProgramiv(self.program, GL_LINK_STATUS):
+            error = glGetProgramInfoLog(self.program).decode()
+            print(error)
+            raise RuntimeError("Program Linking Error")
+
+        glUseProgram(self.program)
+
+        buffer = glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER, buffer)
+
+        glEnable(GL_DEPTH_TEST)
+
+        self.camera = Camera()
+
+    def draw(self, objects):
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glClearColor(0.2, 0.3, 0.3, 1)
+
+        for obj in objects:
+            obj.draw(self.program, self.camera)
+
+        self.camera.update_camera_vectors()
+
+        glfw.swap_buffers(self.window)
+        glfw.poll_events()
+
+    def mouse_callback(self, window, xpos, ypos):
+        # Camera mouse callback
+        self.camera.mouse_callback(xpos, ypos)
+
+    def key_callback(self, window, key, scancode, action, mods):
+        self.camera.key_callback(key, scancode, action, mods)
+
+
+class Physics:
+    def __init__(self):
+        pass
+
+    def tick(self):
+        pass
+
+    def mouse_callback(self, window, xpos, ypos):
+        pass
+
+    def key_callback(self, window, key, scancode, action, mods):
+        pass
+
+
+class Engine:
+    def __init__(self, objects=None, window_length=800, window_height=600):
+        self.graphics: Graphics | None = None
+        self.physics: Physics | None = None
+
+        self.window_properties = {
+            "length": window_length,
+            "height": window_height
+        }
+
+        self.objects = objects if objects is not None else []
+
+    def mouse_callback(self, window, xpos, ypos):
+        if self.graphics is not None:
+            self.graphics.mouse_callback(window, xpos, ypos)
+
+        if self.physics is not None:
+            self.physics.mouse_callback(window, xpos, ypos)
+
+    def key_callback(self, window, key, scancode, action, mods):
+        if self.graphics is not None:
+            self.graphics.key_callback(window, key, scancode, action, mods)
+
+        if self.physics is not None:
+            self.physics.key_callback(window, key, scancode, action, mods)
+
+    def start(self):
+        glfw.init()
+        glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
+
+        window_length = 800
+        window_height = 600
+        window = glfw.create_window(window_length, window_height, "OpenGL Window", None, None)
+        glfw.make_context_current(window)
+
+        self.graphics = Graphics(window)
+        self.physics = Physics()
+
+        glfw.set_cursor_pos_callback(window, self.mouse_callback)
+        glfw.set_key_callback(window, self.key_callback)
+
+        glfw.show_window(window)
+
+        while not glfw.window_should_close(window):
+            glfw.poll_events()
+            self.physics.tick()
+            self.graphics.draw(self.objects)
 
 
 def main():
-    glfw.init()
-    glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
-    window = glfw.create_window(700, 700, "BULE", None, None)
-    glfw.make_context_current(window)
+    model_loader = ObjectLoader()
+    cube = model_loader.new('cube.obj', 'container.jpeg')
 
-    program = glCreateProgram()
-    vertex = glCreateShader(GL_VERTEX_SHADER)
-    fragment = glCreateShader(GL_FRAGMENT_SHADER)
+    # Set cube position to in front of the camera
+    cube.move(0, 0, -3)
 
-    glShaderSource(vertex, vertex_shader)
-    glShaderSource(fragment, fragment_shader)
-
-    glCompileShader(vertex)
-    if not glGetShaderiv(vertex, GL_COMPILE_STATUS):
-        print(glGetShaderInfoLog(vertex))
-        return
-
-    glCompileShader(fragment)
-    if not glGetShaderiv(fragment, GL_COMPILE_STATUS):
-        print(glGetShaderInfoLog(fragment))
-        return
-
-    glAttachShader(program, vertex)
-    glAttachShader(program, fragment)
-
-    glLinkProgram(program)
-    if not glGetProgramiv(program, GL_LINK_STATUS):
-        print(glGetProgramInfoLog(program))
-        raise RuntimeError('Linking error')
-    glUseProgram(program)
-
-    cube = np.array(Object(obj_path).vertices)
-    vertices = np.zeros(len(cube), [("position", np.float32, 3)])
-    vertices['position'] = cube
-
-    buffer = glGenBuffers(1)
-    glBindBuffer(GL_ARRAY_BUFFER, buffer)
-
-    glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_DYNAMIC_DRAW)
-    glBindBuffer(GL_ARRAY_BUFFER, buffer)
-
-    stride = vertices.strides[0]
-    offset = ctypes.c_void_p(0)
-
-    loc = glGetAttribLocation(program, "position")
-    glEnableVertexAttribArray(loc)
-
-    glVertexAttribPointer(loc, 3, GL_FLOAT, False, stride, offset)
-
-    loc_color = glGetUniformLocation(program, "color")
-
-    # exemplo para matriz de translacao
-
-    def key_event(window, key, scancode, action, mods):
-        global t_x_inc, t_y_inc, angulo_x_inc, angulo_y_inc, angulo_z_inc, s_inc
-        if key == 265: t_y_inc += 0.01  # cima
-        if key == 264: t_y_inc -= 0.01  # baixo
-        if key == 263: t_x_inc -= 0.01  # esquerda
-        if key == 262: t_x_inc += 0.01  # direita
-
-        # teclas a, s, d
-        if key == 65: angulo_x_inc += 0.01  # rotacao x
-        if key == 83: angulo_y_inc += 0.01  # rotacao y
-        if key == 68: angulo_z_inc += 0.01  # rotacao z
-
-        # teclas z , x
-        if key == 90: s_inc -= 0.01  # aumenta escala
-        if key == 88: s_inc += 0.01  # reduz escala
-
-    glfw.set_key_callback(window, key_event)
-
-    glfw.show_window(window)
-
-    import math
-    import random
-    d = 0.0
-    glEnable(GL_DEPTH_TEST)
-
-    def multiplica_matriz(a, b):
-        m_a = a.reshape(4, 4)
-        m_b = b.reshape(4, 4)
-        m_c = np.dot(m_a, m_b)
-        c = m_c.reshape(1, 16)
-        return c
-
-    counter = 0
-    while not glfw.window_should_close(window):
-
-        glfw.poll_events()
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
-        glClearColor(1.0, 1.0, 1.0, 1.0)
-
-        mat_ident = np.array([1.0, 0.0, 0.0, 0.0,
-                              0.0, 1.0, 0.0, 0.0,
-                              0.0, 0.0, 1.0, 0.0,
-                              0.0, 0.0, 0.0, 1.0], np.float32)
-
-        t_x = t_x_inc
-        t_y = t_y_inc
-        t_z = 0.0
-        mat_translate = np.array([1.0, 0.0, 0.0, t_x,
-                                  0.0, 1.0, 0.0, t_y,
-                                  0.0, 0.0, 1.0, t_z,
-                                  0.0, 0.0, 0.0, 1.0], np.float32)
-
-        angulo_x = angulo_x_inc
-        angulo_y = angulo_y_inc
-        angulo_z = angulo_z_inc
-
-        mat_rotation_z = np.array([math.cos(angulo_z), -math.sin(angulo_z), 0.0, 0.0,
-                                   math.sin(angulo_z), math.cos(angulo_z), 0.0, 0.0,
-                                   0.0, 0.0, 1.0, 0.0,
-                                   0.0, 0.0, 0.0, 1.0], np.float32)
-
-        mat_rotation_x = np.array([1.0, 0.0, 0.0, 0.0,
-                                   0.0, math.cos(angulo_x), -math.sin(angulo_x), 0.0,
-                                   0.0, math.sin(angulo_x), math.cos(angulo_x), 0.0,
-                                   0.0, 0.0, 0.0, 1.0], np.float32)
-
-        mat_rotation_y = np.array([math.cos(angulo_y), 0.0, math.sin(angulo_y), 0.0,
-                                   0.0, 1.0, 0.0, 0.0,
-                                   -math.sin(angulo_y), 0.0, math.cos(angulo_y), 0.0,
-                                   0.0, 0.0, 0.0, 1.0], np.float32)
-
-        s_x = s_inc
-        s_y = s_inc
-        s_z = s_inc
-        mat_scale = np.array([s_x, 0.0, 0.0, 0.0,
-                              0.0, s_y, 0.0, 0.0,
-                              0.0, 0.0, s_z, 0.0,
-                              0.0, 0.0, 0.0, 1.0], np.float32)
-
-        mat_transform = multiplica_matriz(mat_translate, mat_rotation_x)
-        mat_transform = multiplica_matriz(mat_rotation_z, mat_transform)
-        mat_transform = multiplica_matriz(mat_rotation_y, mat_transform)
-        mat_transform = multiplica_matriz(mat_scale, mat_transform)
-
-        loc = glGetUniformLocation(program, "mat_transformation")
-        glUniformMatrix4fv(loc, 1, GL_TRUE, mat_transform)
-
-        # Draw polygon vertices in the order
-        glDrawArrays(GL_LINE_LOOP, 0, len(vertices))
-
-        glfw.swap_buffers(window)
-
-        counter += 1
-
-    glfw.terminate()
+    engine = Engine([cube])
+    engine.start()
 
 
 if __name__ == "__main__":
