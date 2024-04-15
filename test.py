@@ -4,37 +4,13 @@ import glfw
 from OpenGL.GL import *
 import glm
 import numpy as np
+from PIL import Image
 
-# Vertex Shader
-vertex_shader_source = """
-#version 330 core
-layout (location = 0) in vec3 aPos;
+vertex_shader_source = open("shaders/vertex.glsl").read()
+fragment_shader_source = open("shaders/fragment.glsl").read()
 
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
-
-void main()
-{
-    gl_Position = projection * view * model * vec4(aPos, 1.0);
-}
-"""
-
-# Fragment Shader
-fragment_shader_source = """
-#version 330 core
-out vec4 FragColor;
-
-void main()
-{
-    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
-}
-"""
-
-# Window dimensions
 width, height = 800, 600
 
-# Camera parameters
 camera_pos = glm.vec3(0.0, 0.0, 3.0)
 camera_front = glm.vec3(0.0, 0.0, -1.0)
 camera_up = glm.vec3(0.0, 1.0, 0.0)
@@ -159,6 +135,7 @@ def main():
     glDeleteShader(fragment_shader)
 
     # Enable depth testing
+    glEnable(GL_DEPTH_TEST)
     projection = glm.perspective(glm.radians(fov), width / height, 0.1, 100.0)
 
     a, b = -3, 3
@@ -167,8 +144,9 @@ def main():
         def __init__(self):
             self.vao = None
             self.num_faces = None
+            self.texture = None
 
-        def build(self, vertices, faces):
+        def build(self, vertices, faces, texture_coords, image):
             VBO = glGenBuffers(1)
             VAO = glGenVertexArrays(1)
             glBindVertexArray(VAO)
@@ -176,7 +154,13 @@ def main():
             glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), ctypes.c_void_p(0))
             glEnableVertexAttribArray(0)
-            glBindBuffer(GL_ARRAY_BUFFER, 0)
+
+            # Texture coordinates buffer
+            texture_coords_buffer = glGenBuffers(1)
+            glBindBuffer(GL_ARRAY_BUFFER, texture_coords_buffer)
+            glBufferData(GL_ARRAY_BUFFER, texture_coords.nbytes, texture_coords, GL_STATIC_DRAW)
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), ctypes.c_void_p(0))
+            glEnableVertexAttribArray(1)
 
             # Create EBO (Element Buffer Object) for indices
             EBO = glGenBuffers(1)
@@ -185,11 +169,25 @@ def main():
 
             glBindVertexArray(0)
 
-            return VAO, len(faces)
+            texture = glGenTextures(1)
+            # glActiveTexture(GL_TEXTURE0 + texture)
+            glBindTexture(GL_TEXTURE_2D, texture)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
 
-        def load(self, path):
+            image_data = image.convert("RGBA").tobytes()
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data)
+            glGenerateMipmap(GL_TEXTURE_2D)
+            glBindTexture(GL_TEXTURE_2D, 0)
+
+            self.vao, self.num_faces, self.texture = VAO, len(faces), texture
+
+        def load(self, path, texture_path):
             vertices = []
             faces = []
+            tex_coords = []
 
             with open(path, 'r') as file:
                 for line in file:
@@ -199,10 +197,18 @@ def main():
                     elif line.startswith('f '):
                         face = [int(vertex.split('/')[0]) - 1 for vertex in line.strip().split()[1:]]
                         faces.append(face)
+                    elif line.startswith('vt '):
+                        uv = list(map(float, line.strip().split()[1:]))
+                        tex_coords.append(uv)
+
+            image = Image.open(texture_path)
+            image = image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)  # OpenGL expects the image to be flipped
 
             vertices = np.array(vertices, dtype=np.float32)
             faces = np.array(faces, dtype=np.uint32).flatten()
-            self.vao, self.num_faces = self.build(vertices, faces)
+            tex_coords = np.array(tex_coords, dtype=np.float32)
+
+            self.build(vertices, faces, tex_coords, image)
 
         def draw(self, shader_program, pos, rot, scale):
             model = glm.translate(glm.mat4(1.0), pos)
@@ -211,16 +217,24 @@ def main():
             model = glm.rotate(model, glm.radians(rot.z), glm.vec3(0, 0, 1))
             model = glm.scale(model, scale)
             glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, glm.value_ptr(model))
+            glUniformMatrix4fv(glGetUniformLocation(shader_program, "view"), 1, GL_FALSE, glm.value_ptr(view))
+            glUniformMatrix4fv(glGetUniformLocation(shader_program, "projection"), 1, GL_FALSE, glm.value_ptr(projection))
 
             glBindVertexArray(self.vao)
             glDrawElements(GL_TRIANGLES, self.num_faces * 3, GL_UNSIGNED_INT, None)
+            glBindVertexArray(0)
+
+            # Bind texture
+            glActiveTexture(GL_TEXTURE0)
+            glBindTexture(GL_TEXTURE_2D, self.texture)
+            glUniform1i(glGetUniformLocation(shader_program, "texture_data"), 0)
 
     class Object:
         def __init__(self, model: Model = None):
             self.model = model
             self._pos = glm.vec3(random.uniform(a, b), random.uniform(a, b), random.uniform(a, b))
             self._rot = glm.vec3(random.uniform(0, 360), random.uniform(0, 360), random.uniform(0, 360))
-            self._scale = glm.vec3(1, 1, 1)
+            self._scale = glm.vec3(0.51, 0.51, 0.51)
 
         @property
         def position(self):
@@ -232,7 +246,7 @@ def main():
 
     n = 4
     cube_model = Model()
-    cube_model.load("models/cube.obj")
+    cube_model.load("models/cube.obj", "textures/container.jpg")
 
     cubes = [Object(cube_model) for _ in range(n)]
 
