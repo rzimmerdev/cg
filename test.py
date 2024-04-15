@@ -158,72 +158,83 @@ def main():
     glDeleteShader(vertex_shader)
     glDeleteShader(fragment_shader)
 
-    def load_obj(file_path):
-        vertices = []
-        faces = []
-
-        with open(file_path, 'r') as file:
-            for line in file:
-                if line.startswith('v '):
-                    vertex = list(map(float, line.strip().split()[1:]))
-                    vertices.append(vertex)
-                elif line.startswith('f '):
-                    face = [int(vertex.split('/')[0]) - 1 for vertex in line.strip().split()[1:]]
-                    faces.append(face)
-
-        return np.array(vertices, dtype=np.float32), np.array(faces, dtype=np.uint32)
-
-    def load_cube(vertices, faces):
-        VBO = glGenBuffers(1)
-        VAO = glGenVertexArrays(1)
-        glBindVertexArray(VAO)
-        glBindBuffer(GL_ARRAY_BUFFER, VBO)
-        glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), ctypes.c_void_p(0))
-        glEnableVertexAttribArray(0)
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
-
-        # Create EBO (Element Buffer Object) for indices
-        EBO = glGenBuffers(1)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO)
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.nbytes, faces, GL_STATIC_DRAW)
-
-        glBindVertexArray(0)
-
-        return VAO, len(faces)
-
-    def draw_cube(cube_vao, num_faces):
-        glBindVertexArray(cube_vao)
-        glDrawElements(GL_TRIANGLES, num_faces * 3, GL_UNSIGNED_INT, None)
-
-    # Load vertices and faces from OBJ file
-    vertices, faces = load_obj('models/cube.obj')
-
-    # Create VAO and VBO
-    cube_vao, num_faces = load_cube(vertices, faces)
-
-    # Projection matrix
+    # Enable depth testing
     projection = glm.perspective(glm.radians(fov), width / height, 0.1, 100.0)
 
     a, b = -3, 3
 
-    class Cube:
-        def __init__(self, cube_vao, num_faces):
-            self.VAO = cube_vao
-            self.num_faces = num_faces
+    class Model:
+        def __init__(self):
+            self.vao = None
+            self.num_faces = None
+
+        def build(self, vertices, faces):
+            VBO = glGenBuffers(1)
+            VAO = glGenVertexArrays(1)
+            glBindVertexArray(VAO)
+            glBindBuffer(GL_ARRAY_BUFFER, VBO)
+            glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), ctypes.c_void_p(0))
+            glEnableVertexAttribArray(0)
+            glBindBuffer(GL_ARRAY_BUFFER, 0)
+
+            # Create EBO (Element Buffer Object) for indices
+            EBO = glGenBuffers(1)
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO)
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.nbytes, faces, GL_STATIC_DRAW)
+
+            glBindVertexArray(0)
+
+            return VAO, len(faces)
+
+        def load(self, path):
+            vertices = []
+            faces = []
+
+            with open(path, 'r') as file:
+                for line in file:
+                    if line.startswith('v '):
+                        vertex = list(map(float, line.strip().split()[1:]))
+                        vertices.append(vertex)
+                    elif line.startswith('f '):
+                        face = [int(vertex.split('/')[0]) - 1 for vertex in line.strip().split()[1:]]
+                        faces.append(face)
+
+            vertices = np.array(vertices, dtype=np.float32)
+            faces = np.array(faces, dtype=np.uint32).flatten()
+            self.vao, self.num_faces = self.build(vertices, faces)
+
+        def draw(self, shader_program, pos, rot, scale):
+            model = glm.translate(glm.mat4(1.0), pos)
+            model = glm.rotate(model, glm.radians(rot.x), glm.vec3(1, 0, 0))
+            model = glm.rotate(model, glm.radians(rot.y), glm.vec3(0, 1, 0))
+            model = glm.rotate(model, glm.radians(rot.z), glm.vec3(0, 0, 1))
+            model = glm.scale(model, scale)
+            glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, glm.value_ptr(model))
+
+            glBindVertexArray(self.vao)
+            glDrawElements(GL_TRIANGLES, self.num_faces * 3, GL_UNSIGNED_INT, None)
+
+    class Object:
+        def __init__(self, model: Model = None):
+            self.model = model
             self._pos = glm.vec3(random.uniform(a, b), random.uniform(a, b), random.uniform(a, b))
+            self._rot = glm.vec3(random.uniform(0, 360), random.uniform(0, 360), random.uniform(0, 360))
+            self._scale = glm.vec3(1, 1, 1)
 
         @property
         def position(self):
             return self._pos
 
         def draw(self):
-            model = glm.translate(glm.mat4(1.0), self._pos)
-            glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, glm.value_ptr(model))
-            draw_cube(self.VAO, self.num_faces)
+            if self.model:
+                self.model.draw(shader_program, self._pos, self._rot, self._scale)
 
     n = 4
-    cubes = [Cube(cube_vao, num_faces) for _ in range(n)]
+    cube_model = Model()
+    cube_model.load("models/cube.obj")
+
+    cubes = [Object(cube_model) for _ in range(n)]
 
     # Render loop
     while not glfw.window_should_close(window):
