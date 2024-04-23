@@ -250,11 +250,40 @@ def main():
     monster_model = Model("models/monster/monster.obj", "models/monster/monster.jpg")
     monster = Object(monster_model)
 
+    sky_model = Model("models/sky/sky.obj", "models/sky/sky.jpg")
+    sky = Object(sky_model)
+    sky.scale = glm.vec3(1, 1, 1)
+
+    ground_model = Model("models/ground/ground.obj", "models/ground/ground.jpg")
+    ground = Object(ground_model)
+    ground.scale = glm.vec3(100, 0.1, 100)
+    ground.position = glm.vec3(0, -1, 0)
+
     cubes = [Object(cube_model) for _ in range(n)]
 
     # set cubes positions randomly
     for cube in cubes:
         cube.position = glm.vec3(random.uniform(a, b), random.uniform(a, b), random.uniform(a, b))
+
+    class Engine:
+        def __init__(self):
+            self.objects = []
+
+        def add_objects(self, obj):
+            if isinstance(obj, list):
+                self.objects.extend(obj)
+            else:
+                self.objects.append(obj)
+
+        def draw(self):
+            for obj in self.objects:
+                obj.draw()
+
+    engine = Engine()
+    engine.add_objects(cubes)
+    engine.add_objects(monster)
+    engine.add_objects(sky)
+    engine.add_objects(ground)
 
     # Render loop
     while not glfw.window_should_close(window):
@@ -274,10 +303,7 @@ def main():
         glUniformMatrix4fv(glGetUniformLocation(shader_program, "view"), 1, GL_FALSE, glm.value_ptr(view))
         glUniformMatrix4fv(glGetUniformLocation(shader_program, "projection"), 1, GL_FALSE, glm.value_ptr(projection))
 
-        for cube in cubes:
-            cube.draw()
-
-        monster.draw()
+        engine.draw()
 
         # Swap front and back buffers
         glfw.swap_buffers(window)
