@@ -12,6 +12,13 @@ fragment_shader_source = open("shaders/fragment.glsl").read()
 
 width, height = 800, 600
 
+fullscreen = False
+
+
+def window_resize(window, width, height):
+    glViewport(0, 0, width, height)
+
+
 camera_pos = glm.vec3(0.0, 0.0, 3.0)
 camera_front = glm.vec3(0.0, 0.0, -1.0)
 camera_up = glm.vec3(0.0, 1.0, 0.0)
@@ -35,7 +42,7 @@ def framebuffer_size_callback(window, width, height):
 
 
 def process_input(window):
-    global delta_time, last_frame, camera_pos, speed
+    global delta_time, last_frame, camera_pos, speed, fullscreen, width, height
 
     current_frame = glfw.get_time()
     delta_time = current_frame - last_frame
@@ -61,6 +68,16 @@ def process_input(window):
 
     if glfw.get_key(window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
         camera_pos -= camera_up * speed * delta_time
+
+    if glfw.get_key(window, glfw.KEY_F11) == glfw.PRESS:
+        if fullscreen:
+            glfw.set_window_monitor(window, None, 100, 100, width, height, glfw.DONT_CARE)
+            fullscreen = False
+        else:
+            monitor = glfw.get_primary_monitor()
+            mode = glfw.get_video_mode(monitor)
+            glfw.set_window_monitor(window, monitor, 0, 0, mode.size.width, mode.size.height, mode.refresh_rate)
+            fullscreen = True
 
 
 def mouse_callback(window, xpos, ypos):
