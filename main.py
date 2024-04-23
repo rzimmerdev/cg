@@ -26,7 +26,7 @@ delta_time = 0.0
 last_frame = 0.0
 
 # Movement speed
-speed = 2.5 * 0.16
+speed = 2
 
 
 # Callback functions
@@ -171,7 +171,7 @@ def main():
         return vertices, texture_coords, faces
 
     class Model:
-        def __init__(self):
+        def __init__(self, obj_file=None, texture_file=None):
             self.vertices = None
             self.triangle_vertices = None
             self.texture_coords = None
@@ -180,6 +180,9 @@ def main():
             self.vao = None
             self.vbo = None
             self.texture_id = None
+
+            if obj_file and texture_file:
+                self.load(obj_file, texture_file)
 
         def load(self, obj_file, texture_file):
             self.vertices, self.texture_coords, self.faces = load_obj(obj_file)
@@ -216,6 +219,8 @@ def main():
 
         def draw(self):
             glBindVertexArray(self.vao)
+            glActiveTexture(GL_TEXTURE0)
+            glBindTexture(GL_TEXTURE_2D, self.texture_id)
             glDrawArrays(GL_TRIANGLES, 0, len(self.triangle_vertices) // 5)
 
     class Object:
@@ -238,11 +243,18 @@ def main():
             glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, glm.value_ptr(model))
             self.model.draw()
 
-    n = 1
+    n = 3
     cube_model = Model()
     cube_model.load("models/caixa/caixa.obj", "models/caixa/caixa.jpg")
 
+    monster_model = Model("models/monster/monster.obj", "models/monster/monster.jpg")
+    monster = Object(monster_model)
+
     cubes = [Object(cube_model) for _ in range(n)]
+
+    # set cubes positions randomly
+    for cube in cubes:
+        cube.position = glm.vec3(random.uniform(a, b), random.uniform(a, b), random.uniform(a, b))
 
     # Render loop
     while not glfw.window_should_close(window):
@@ -264,6 +276,8 @@ def main():
 
         for cube in cubes:
             cube.draw()
+
+        monster.draw()
 
         # Swap front and back buffers
         glfw.swap_buffers(window)
