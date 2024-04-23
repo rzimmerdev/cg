@@ -2,7 +2,7 @@ import random
 
 import glfw
 from OpenGL.GL import *
-from OpenGL.GL.shaders import compileShader, compileProgram
+from OpenGL.GL.shaders import compileProgram
 import glm
 import numpy as np
 from PIL import Image
