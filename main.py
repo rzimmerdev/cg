@@ -1,4 +1,5 @@
 import random
+import threading
 
 import glfw
 from OpenGL.GL import *
@@ -34,6 +35,17 @@ last_frame = 0.0
 
 # Movement speed
 speed = 2
+
+from src.server import Multiplayer, Server
+conn = Multiplayer()
+server = None
+
+try:
+    conn.connect()
+except:
+    server = Server()
+    server.start()
+    conn.connect()
 
 
 # Callback functions
@@ -79,6 +91,8 @@ def process_input(window):
             glfw.set_window_monitor(window, monitor, 0, 0, mode.size.width, mode.size.height, mode.refresh_rate)
             fullscreen = True
 
+    conn.update(f"{camera_pos.x} {camera_pos.y} {camera_pos.z} {camera_front.x} {camera_front.y} {camera_front.z}")
+
 
 def mouse_callback(window, xpos, ypos):
     global first_mouse, last_x, last_y, yaw, pitch
@@ -111,6 +125,8 @@ def mouse_callback(window, xpos, ypos):
     front.z = np.sin(glm.radians(yaw)) * np.cos(glm.radians(pitch))
     global camera_front
     camera_front = glm.normalize(front)
+
+    conn.update(f"{camera_pos.x} {camera_pos.y} {camera_pos.z} {camera_front.x} {camera_front.y} {camera_front.z}")
 
 
 def main():
@@ -302,6 +318,10 @@ def main():
     engine.add_objects(sky)
     engine.add_objects(ground)
 
+    # run conn.tick in a separate thread
+    thread = threading.Thread(target=conn.process)
+    thread.start()
+
     # Render loop
     while not glfw.window_should_close(window):
         # Input
@@ -328,9 +348,13 @@ def main():
         # Poll for and process events
         glfw.poll_events()
 
+    conn.disconnect()
+    thread.join()
     # Clear resources
     glfw.terminate()
 
 
 if __name__ == "__main__":
     main()
+    if server:
+        server.stop()
