@@ -122,9 +122,9 @@ def main():
     class Object:
         def __init__(self):
             self.model = None
-            self.position = None
-            self.rotation = None
-            self.scale = None
+            self.position = glm.vec3(0.0, 0.0, 0.0)
+            self.rotation = glm.vec3(0.0, 0.0, 0.0)
+            self.scale = glm.vec3(1.0, 1.0, 1.0)
 
         def set_model(self, model):
             self.model = model
@@ -177,6 +177,9 @@ def main():
     my_model = Model()
     my_model.load("caixa.obj", "caixa.jpg")
 
+    my_object = Object()
+    my_object.set_model(my_model)
+
     # Set projection matrix
     projection = glm.perspective(glm.radians(45), window_width / window_height, 0.1, 1000.0)
     glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, glm.value_ptr(projection))
@@ -193,15 +196,8 @@ def main():
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         # Set model matrix
-        model = glm.mat4(1.0)
-        model = glm.rotate(model, glfw.get_time() * glm.radians(50.0), glm.vec3(0.5, 1.0, 0.0))
-        glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, glm.value_ptr(model))
-
-        # Draw the cube
-        # glBindVertexArray(vao)
-        # glDrawArrays(GL_TRIANGLES, 0, len(triangle_vertices) // 5)
-
-        my_model.draw()
+        my_object.rotation = glm.vec3(0.0, glfw.get_time(), 0.0)
+        my_object.draw()
 
         # Swap front and back buffers
         glfw.swap_buffers(window)
