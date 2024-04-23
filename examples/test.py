@@ -74,6 +74,7 @@ def main():
     class Model:
         def __init__(self):
             self.vertices = None
+            self.triangle_vertices = None
             self.texture_coords = None
             self.faces = None
 
@@ -93,14 +94,14 @@ def main():
                         triangle_vertices.extend(vertex)
                         triangle_vertices.extend(texture_coord)
 
-            triangle_vertices = np.array(triangle_vertices, dtype=np.float32)
+            self.triangle_vertices = np.array(triangle_vertices, dtype=np.float32)
 
             self.vao = glGenVertexArrays(1)
             glBindVertexArray(self.vao)
 
             self.vbo = glGenBuffers(1)
             glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-            glBufferData(GL_ARRAY_BUFFER, triangle_vertices, GL_STATIC_DRAW)
+            glBufferData(GL_ARRAY_BUFFER, self.triangle_vertices, GL_STATIC_DRAW)
 
             position = glGetAttribLocation(shader, "position")
             glVertexAttribPointer(position, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), None)
@@ -116,43 +117,65 @@ def main():
 
         def draw(self):
             glBindVertexArray(self.vao)
-            glDrawArrays(GL_TRIANGLES, 0, len(self.vertices) // 5)
+            glDrawArrays(GL_TRIANGLES, 0, len(self.triangle_vertices) // 5)
+
+    class Object:
+        def __init__(self):
+            self.model = None
+            self.position = None
+            self.rotation = None
+            self.scale = None
+
+        def set_model(self, model):
+            self.model = model
+
+        def draw(self):
+            model = glm.mat4(1.0)
+            model = glm.translate(model, self.position)
+            model = glm.rotate(model, self.rotation.x, glm.vec3(1.0, 0.0, 0.0))
+            model = glm.rotate(model, self.rotation.y, glm.vec3(0.0, 1.0, 0.0))
+            model = glm.rotate(model, self.rotation.z, glm.vec3(0.0, 0.0, 1.0))
+            model = glm.scale(model, self.scale)
+            glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, glm.value_ptr(model))
+            self.model.draw()
 
     # Load cube data
-    vertices, texture_coords, faces = load_obj("caixa.obj")
-
-    # Convert faces to triangle vertices
-    triangle_vertices = []
-    for face in faces:
-        for i in range(1, len(face) - 1):
-            for idx in [0, i, i + 1]:
-                vertex = vertices[face[idx][0] - 1]
-                texture_coord = texture_coords[face[idx][1] - 1]
-                triangle_vertices.extend(vertex)
-                triangle_vertices.extend(texture_coord)
-
-    triangle_vertices = np.array(triangle_vertices, dtype=np.float32)
-
-    vao = glGenVertexArrays(1)
-    glBindVertexArray(vao)
-
-    vbo = glGenBuffers(1)
-    glBindBuffer(GL_ARRAY_BUFFER, vbo)
-    glBufferData(GL_ARRAY_BUFFER, triangle_vertices, GL_STATIC_DRAW)
-
-    # Specify vertex attributes
-    position = glGetAttribLocation(shader, "position")
-    glVertexAttribPointer(position, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), None)
-    glEnableVertexAttribArray(position)
-
-    texture_coord = glGetAttribLocation(shader, "texture_coord")
-    glVertexAttribPointer(texture_coord, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat),
-                          ctypes.c_void_p(3 * sizeof(GLfloat)))
-    glEnableVertexAttribArray(texture_coord)
-
-    # Load texture
-    texture_id = load_texture("caixa.jpg")
-    glUniform1i(glGetUniformLocation(shader, "samplerTexture"), 0)
+    # vertices, texture_coords, faces = load_obj("caixa.obj")
+    #
+    # # Convert faces to triangle vertices
+    # triangle_vertices = []
+    # for face in faces:
+    #     for i in range(1, len(face) - 1):
+    #         for idx in [0, i, i + 1]:
+    #             vertex = vertices[face[idx][0] - 1]
+    #             texture_coord = texture_coords[face[idx][1] - 1]
+    #             triangle_vertices.extend(vertex)
+    #             triangle_vertices.extend(texture_coord)
+    #
+    # triangle_vertices = np.array(triangle_vertices, dtype=np.float32)
+    #
+    # vao = glGenVertexArrays(1)
+    # glBindVertexArray(vao)
+    #
+    # vbo = glGenBuffers(1)
+    # glBindBuffer(GL_ARRAY_BUFFER, vbo)
+    # glBufferData(GL_ARRAY_BUFFER, triangle_vertices, GL_STATIC_DRAW)
+    #
+    # # Specify vertex attributes
+    # position = glGetAttribLocation(shader, "position")
+    # glVertexAttribPointer(position, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), None)
+    # glEnableVertexAttribArray(position)
+    #
+    # texture_coord = glGetAttribLocation(shader, "texture_coord")
+    # glVertexAttribPointer(texture_coord, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat),
+    #                       ctypes.c_void_p(3 * sizeof(GLfloat)))
+    # glEnableVertexAttribArray(texture_coord)
+    #
+    # # Load texture
+    # texture_id = load_texture("caixa.jpg")
+    # glUniform1i(glGetUniformLocation(shader, "samplerTexture"), 0)
+    my_model = Model()
+    my_model.load("caixa.obj", "caixa.jpg")
 
     # Set projection matrix
     projection = glm.perspective(glm.radians(45), window_width / window_height, 0.1, 1000.0)
@@ -161,9 +184,6 @@ def main():
     # Set view matrix
     view = glm.lookAt(glm.vec3(0, 0, 5), glm.vec3(0, 0, 0), glm.vec3(0, 1, 0))
     glUniformMatrix4fv(glGetUniformLocation(shader, "view"), 1, GL_FALSE, glm.value_ptr(view))
-
-    my_model = Model()
-    my_model.load("caixa.obj", "caixa.jpg")
 
     glEnable(GL_DEPTH_TEST)
 
@@ -178,8 +198,8 @@ def main():
         glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, glm.value_ptr(model))
 
         # Draw the cube
-        glBindVertexArray(vao)
-        glDrawArrays(GL_TRIANGLES, 0, len(triangle_vertices) // 5)
+        # glBindVertexArray(vao)
+        # glDrawArrays(GL_TRIANGLES, 0, len(triangle_vertices) // 5)
 
         my_model.draw()
 
