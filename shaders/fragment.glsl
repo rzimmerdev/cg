@@ -1,13 +1,8 @@
-#version 330 core
-out vec4 FragColor;
+uniform vec4 color;
+varying vec2 out_texture;
+uniform sampler2D samplerTexture;
 
-// Texture
-uniform sampler2D texture_data;
-
-// Texture coordinates
-in vec2 TexCoord;
-
-void main()
-{
-    FragColor = texture(texture_data, TexCoord);
+void main(){
+    vec4 texture = texture2D(samplerTexture, out_texture);
+    gl_FragColor = texture;
 }

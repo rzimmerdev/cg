@@ -246,7 +246,7 @@ def main():
 
     n = 4
     cube_model = Model()
-    cube_model.load("models/cube.obj", "textures/container.jpg")
+    cube_model.load("models/caixa/caixa.obj", "models/caixa/caixa.jpg")
 
     cubes = [Object(cube_model) for _ in range(n)]
 
