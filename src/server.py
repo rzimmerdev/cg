@@ -1,11 +1,16 @@
 import asyncio
-from typing import List
+import json
+from typing import List, Dict
 
+import glm
 import websockets
 import websocket
 import threading
 
-from src.object import Object
+from OpenGL.GL.shaders import ShaderProgram
+
+from src.object import Object, Model
+from src.player import Player
 
 
 class Server:
@@ -24,13 +29,13 @@ class Server:
 
     async def broadcast(self, message, exclude=None):
         for client in self.clients - {exclude}:
-            await client.send(message)
+            await client.send(json.dumps(message))
 
     # message handler, simply relay the message to all clients
     async def handle_client(self, websocket, path):
         # Add the client to the set of connected clients
         self.clients.add(websocket)
-        await self.broadcast("new")
+        await self.broadcast({"new_player": str(websocket.id)})
         try:
             async for message in websocket:
                 # broadcast the message to all clients
@@ -63,13 +68,29 @@ class Server:
         self.running.clear()
         self._thread.join()
 
+    def new_id(self):
+        if not self.clients:
+            return 0
+        return len(self.clients)
+
 
 class Multiplayer:
     def __init__(self):
         self.client = websocket.WebSocket()
         self.running = threading.Event()
 
+        self.player_id = None
+
     def connect(self):
+        self.client.connect("ws://localhost:8765")
+        self.running.set()
+        # wait for the server to send the player id
+        msg = self.client.recv()
+        response = json.loads(msg)
+        self.player_id = response["new_player"]
+        return self.player_id
+
+    def reconnect(self):
         self.client.connect("ws://localhost:8765")
         self.running.set()
 
@@ -78,17 +99,19 @@ class Multiplayer:
         self.client.close()
 
     def update(self, message):
-        self.client.send(message)
-
-
-class Player(Object):
-    pass
+        try:
+            self.client.send(json.dumps(message))
+        except (ConnectionResetError, ConnectionRefusedError, BrokenPipeError):
+            self.running.clear()
 
 
 class Engine:
-    def __init__(self):
+    def __init__(self, shader_program: ShaderProgram):
         self.objects: List[Object] = []
-        self.players: List[Player] = []
+        self.player_model = Model(shader_program, "models/monster/monster.obj", "models/monster/monster.jpg")
+        self.players: Dict[int, Player] = {}
+
+        self.running = threading.Event()
 
         self.conn = Multiplayer()
 
@@ -101,18 +124,38 @@ class Engine:
     def draw(self):
         for obj in self.objects:
             obj.draw()
-        for player in self.players:
+        for player in self.players.values():
             player.draw()
 
     def start(self):
-        thread = threading.Thread(target=self.tick_multiplayer)
+        self.running.set()
+        thread = threading.Thread(target=self._server_tick)
         thread.start()
 
-    async def tick_multiplayer(self):
-        msg = self.conn.client.recv()
+    def _server_tick(self):
+        # run tick multiplayer asynchronusly
+        while self.running.is_set():
+            asyncio.run(self.tick_multiplayer())
 
-        if msg == "new":
-            self.players.append(Player())
+    async def tick_multiplayer(self):
+        if not self.conn.running.is_set() or self.conn.player_id is None:
+            return
+        try:
+            msg = self.conn.client.recv()
+        except websocket.WebSocketConnectionClosedException:
+            self.conn.reconnect()
+            return
+        try:
+            response = json.loads(json.loads(msg))
+        except json.JSONDecodeError:
+            return
+
+        for player_id, camera in response.items():
+            if player_id not in self.players:
+                player = Player(self.player_model)
+                self.players[player_id] = player
+            x, y, z = camera[:3]
+            self.players[player_id].position = glm.vec3(x, y, z)
 
 
 if __name__ == "__main__":
@@ -125,6 +168,4 @@ if __name__ == "__main__":
 
     # send a message to the server
     conn.update("Hello World!")
-    conn.tick()
-
     server.stop()

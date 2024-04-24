@@ -49,7 +49,7 @@ class Model:
 
         self.vao = None
         self.vbo = None
-        self.texture_id = None
+        self.texture_ids = None
 
         self.shader_program = shader_program
         if not isinstance(shader_program, ShaderProgram):
@@ -59,6 +59,8 @@ class Model:
             self.load(obj_file, texture_files)
 
     def load(self, obj_file, texture_files):
+        if not isinstance(texture_files, list):
+            texture_files = [texture_files]
         self.vertices, self.texture_coords, self.faces = load_obj(obj_file)
 
         triangle_vertices = []
@@ -88,15 +90,17 @@ class Model:
                               ctypes.c_void_p(3 * sizeof(GLfloat)))
         glEnableVertexAttribArray(texture_coord)
 
-        self.texture_id = load_texture(texture_files)
+        self.texture_ids = [load_texture(texture_file) for texture_file in texture_files]
         glUniform1i(glGetUniformLocation(self.shader_program, "samplerTexture"), 0)
 
     def draw(self, matrix):
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, glm.value_ptr(matrix))
         glBindVertexArray(self.vao)
         glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, self.texture_id)
-        glDrawArrays(GL_TRIANGLES, 0, len(self.triangle_vertices) // 5)
+        for texture_id in self.texture_ids:
+            glBindTexture(GL_TEXTURE_2D, texture_id)
+            glDrawArrays(GL_TRIANGLES, 0, len(self.triangle_vertices) // 5)  # this draws all faces
+            # should draw only face related to the texture
 
 
 class Object:
