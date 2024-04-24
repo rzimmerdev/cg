@@ -1,7 +1,11 @@
 import asyncio
+from typing import List
+
 import websockets
 import websocket
 import threading
+
+from src.object import Object
 
 
 class Server:
@@ -26,6 +30,7 @@ class Server:
     async def handle_client(self, websocket, path):
         # Add the client to the set of connected clients
         self.clients.add(websocket)
+        await self.broadcast("new")
         try:
             async for message in websocket:
                 # broadcast the message to all clients
@@ -75,12 +80,39 @@ class Multiplayer:
     def update(self, message):
         self.client.send(message)
 
-    def tick(self):
-        print(self.client.recv())
 
-    def process(self):
-        while self.running.is_set():
-            self.tick()
+class Player(Object):
+    pass
+
+
+class Engine:
+    def __init__(self):
+        self.objects: List[Object] = []
+        self.players: List[Player] = []
+
+        self.conn = Multiplayer()
+
+    def add_objects(self, obj):
+        if isinstance(obj, list):
+            self.objects.extend(obj)
+        else:
+            self.objects.append(obj)
+
+    def draw(self):
+        for obj in self.objects:
+            obj.draw()
+        for player in self.players:
+            player.draw()
+
+    def start(self):
+        thread = threading.Thread(target=self.tick_multiplayer)
+        thread.start()
+
+    async def tick_multiplayer(self):
+        msg = self.conn.client.recv()
+
+        if msg == "new":
+            self.players.append(Player())
 
 
 if __name__ == "__main__":
