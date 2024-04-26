@@ -6,7 +6,7 @@ from OpenGL.GL.shaders import compileProgram
 import glm
 import numpy as np
 
-from src.object import Model, Object
+from src.objects.object import Model, Object
 
 vertex_shader_source = open("shaders/vertex.glsl").read()
 fragment_shader_source = open("shaders/fragment.glsl").read()
@@ -36,7 +36,123 @@ last_frame = 0.0
 # Movement speed
 speed = 2
 
-from src.server import Server, Engine
+
+class Camera:
+    def __init__(self, pos: glm.vec3, front: glm.vec3, up: glm.vec3):
+        self.pos = pos
+        self.front = front
+        self.up = up
+        self.yaw = -90.0
+        self.pitch = 0.0
+        self.last_x = width / 2
+        self.last_y = height / 2
+        self.fov = 45.0
+        self.first_mouse = True
+
+
+class Window:
+    def __init__(self, width: int, height: int, title: str):
+        self.width = width
+        self.height = height
+        self.title = title
+        self.window = None
+
+    def create_window(self):
+        if not glfw.init():
+            return
+
+        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
+        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+
+        self.window = glfw.create_window(self.width, self.height, self.title, None, None)
+        if not self.window:
+            glfw.terminate()
+            return
+
+        glfw.make_context_current(self.window)
+        glfw.set_framebuffer_size_callback(self.window, window_resize)
+        glfw.set_input_mode(self.window, glfw.CURSOR, glfw.CURSOR_DISABLED)
+        return self.window
+
+    def setup(self, mouse_callback):
+        glfw.set_cursor_pos_callback(self.window, mouse_callback)
+
+    def close_window(self):
+        glfw.terminate()
+
+    def set_framebuffer_size_callback(self, callback):
+        glfw.set_framebuffer_size_callback(self.window, callback)
+
+    def set_cursor_pos_callback(self, callback):
+        glfw.set_cursor_pos_callback(self.window, callback)
+
+    def set_input_mode(self, mode):
+        glfw.set_input_mode(self.window, glfw.CURSOR, mode)
+
+    def should_close(self):
+        return glfw.window_should_close(self.window)
+
+    def swap_buffers(self):
+        glfw.swap_buffers(self.window)
+
+    def poll_events(self):
+        glfw.poll_events()
+
+    def terminate(self):
+        glfw.terminate()
+
+
+class Game:
+    def __init__(self):
+        self.engine = None
+        self.window = None
+        self.current_camera = None
+        self.shader_program = None
+
+    def load(self):
+        self.window = Window(width, height, "Game")
+        self.window.create_window()
+
+        self.setup_shader_program()
+
+        self.current_camera = Camera(camera_pos, camera_front, camera_up)
+
+
+    def setup_shader_program(self):
+        vertex_shader = glCreateShader(GL_VERTEX_SHADER)
+        glShaderSource(vertex_shader, vertex_shader_source)
+        glCompileShader(vertex_shader)
+
+        fragment_shader = glCreateShader(GL_FRAGMENT_SHADER)
+        glShaderSource(fragment_shader, fragment_shader_source)
+        glCompileShader(fragment_shader)
+
+        self.shader_program = compileProgram(vertex_shader, fragment_shader)
+        glUseProgram(self.shader_program)
+
+        glEnable(GL_DEPTH_TEST)
+
+    def start(self):
+        self.engine = Engine(self.shader_program)
+        self.engine.start()
+
+    def process_input(self):
+        pass
+
+    def render(self):
+        pass
+
+    def main_loop(self):
+        while not self.window.should_close():
+            self.process_input()
+            self.render()
+            self.window.swap_buffers()
+            self.window.poll_events()
+
+
+
+from src.engine import Engine, Server
 
 
 # Callback functions
@@ -63,7 +179,7 @@ def main():
     # Make the window's context current
     glfw.make_context_current(window)
     glfw.set_framebuffer_size_callback(window, framebuffer_size_callback)
-    # glfw.set_input_mode(window, glfw.CURSOR, glfw.CURSOR_DISABLED)
+    glfw.set_input_mode(window, glfw.CURSOR, glfw.CURSOR_DISABLED)
 
     # Compile shaders
     vertex_shader = glCreateShader(GL_VERTEX_SHADER)

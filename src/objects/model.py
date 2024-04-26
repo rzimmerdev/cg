@@ -21,7 +21,7 @@ def load_texture(file_path):
     return texture_id
 
 
-def load_obj(file_path):
+def load_wavefront(file_path):
     vertices = []
     texture_coords = []
     faces = []
@@ -61,7 +61,7 @@ class Model:
     def load(self, obj_file, texture_files):
         if not isinstance(texture_files, list):
             texture_files = [texture_files]
-        self.vertices, self.texture_coords, self.faces = load_obj(obj_file)
+        self.vertices, self.texture_coords, self.faces = load_wavefront(obj_file)
 
         triangle_vertices = []
         for face in self.faces:
@@ -101,23 +101,3 @@ class Model:
             glBindTexture(GL_TEXTURE_2D, texture_id)
             glDrawArrays(GL_TRIANGLES, 0, len(self.triangle_vertices) // 5)  # this draws all faces
             # should draw only face related to the texture
-
-
-class Object:
-    def __init__(self, model: Model = None):
-        self.model = model
-        self.position = glm.vec3(0.0, 0.0, 0.0)
-        self.rotation = glm.vec3(0.0, 0.0, 0.0)
-        self.scale = glm.vec3(1.0, 1.0, 1.0)
-
-    def set_model(self, model):
-        self.model = model
-
-    def draw(self):
-        matrix = glm.mat4(1.0)
-        matrix = glm.translate(matrix, self.position)
-        matrix = glm.rotate(matrix, self.rotation.x, glm.vec3(1.0, 0.0, 0.0))
-        matrix = glm.rotate(matrix, self.rotation.y, glm.vec3(0.0, 1.0, 0.0))
-        matrix = glm.rotate(matrix, self.rotation.z, glm.vec3(0.0, 0.0, 1.0))
-        matrix = glm.scale(matrix, self.scale)
-        self.model.draw(matrix)

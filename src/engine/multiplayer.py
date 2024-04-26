@@ -1,16 +1,9 @@
 import asyncio
 import json
-from typing import List, Dict
 
-import glm
 import websockets
 import websocket
 import threading
-
-from OpenGL.GL.shaders import ShaderProgram
-
-from src.object import Object, Model
-from src.player import Player
 
 
 class Server:
@@ -29,20 +22,24 @@ class Server:
 
     async def broadcast(self, message, exclude=None):
         for client in self.clients - {exclude}:
-            await client.send(json.dumps(message))
+            try:
+                await client.send(json.dumps(message))
+            except websockets.exceptions.ConnectionClosed:
+                await self.unregister(client)
 
     # message handler, simply relay the message to all clients
     async def handle_client(self, websocket, path):
         # Add the client to the set of connected clients
-        self.clients.add(websocket)
+        await self.register(websocket)
         await self.broadcast({"new_player": str(websocket.id)})
         try:
             async for message in websocket:
                 # broadcast the message to all clients
                 await self.broadcast(message)
         finally:
-            # Remove the client from the set of connected clients when they disconnect
-            self.clients.remove(websocket)
+            # Remove the client from the set of connected clients
+            if websocket in self.clients:
+                await self.unregister(websocket)
 
     async def _serve(self):
         self.server = await websockets.serve(self.handle_client, "localhost", 8765)
@@ -75,87 +72,35 @@ class Server:
 
 
 class Multiplayer:
-    def __init__(self):
+    def __init__(self, host="localhost", port=8765):
         self.client = websocket.WebSocket()
-        self.running = threading.Event()
-
+        self.host = host
+        self.port = port
         self.player_id = None
 
     def connect(self):
-        self.client.connect("ws://localhost:8765")
-        self.running.set()
-        # wait for the server to send the player id
+        self.client.connect(f"ws://{self.host}:{self.port}")
         msg = self.client.recv()
         response = json.loads(msg)
         self.player_id = response["new_player"]
         return self.player_id
 
     def reconnect(self):
-        self.client.connect("ws://localhost:8765")
-        self.running.set()
+        self.client.connect(f"ws://{self.host}:{self.port}")
 
     def disconnect(self):
-        self.running.clear()
         self.client.close()
+
+    @property
+    def connected(self):
+        return self.client.connected
 
     def update(self, message):
         try:
             self.client.send(json.dumps(message))
         except (ConnectionResetError, ConnectionRefusedError, BrokenPipeError):
-            self.running.clear()
-
-
-class Engine:
-    def __init__(self, shader_program: ShaderProgram):
-        self.objects: List[Object] = []
-        self.player_model = Model(shader_program, "models/monster/monster.obj", "models/monster/monster.jpg")
-        self.players: Dict[int, Player] = {}
-
-        self.running = threading.Event()
-
-        self.conn = Multiplayer()
-
-    def add_objects(self, obj):
-        if isinstance(obj, list):
-            self.objects.extend(obj)
-        else:
-            self.objects.append(obj)
-
-    def draw(self):
-        for obj in self.objects:
-            obj.draw()
-        for player in self.players.values():
-            player.draw()
-
-    def start(self):
-        self.running.set()
-        thread = threading.Thread(target=self._server_tick)
-        thread.start()
-
-    def _server_tick(self):
-        # run tick multiplayer asynchronusly
-        while self.running.is_set():
-            asyncio.run(self.tick_multiplayer())
-
-    async def tick_multiplayer(self):
-        if not self.conn.running.is_set() or self.conn.player_id is None:
-            return
-        try:
-            msg = self.conn.client.recv()
-        except websocket.WebSocketConnectionClosedException:
-            self.conn.reconnect()
-            return
-        try:
-            response = json.loads(json.loads(msg))
-        except json.JSONDecodeError:
-            return
-
-        for player_id, camera in response.items():
-            if player_id not in self.players:
-                player = Player(self.player_model)
-                self.players[player_id] = player
-            x, y, z = camera[:3]
-            self.players[player_id].position = glm.vec3(x, y, z)
+            self.reconnect()
+            self.update(message)
 
 
 if __name__ == "__main__":
@@ -164,8 +109,11 @@ if __name__ == "__main__":
 
     # connect to the server with a client
     conn = Multiplayer()
-    conn.connect()
+    player_id = conn.connect()
+    print(player_id)
 
     # send a message to the server
     conn.update("Hello World!")
+    conn.disconnect()
+
     server.stop()
