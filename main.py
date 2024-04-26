@@ -1,4 +1,5 @@
 import random
+from dataclasses import dataclass
 
 import glfw
 from OpenGL.GL import *
@@ -37,6 +38,7 @@ last_frame = 0.0
 speed = 2
 
 
+@dataclass
 class Camera:
     def __init__(self, pos: glm.vec3, front: glm.vec3, up: glm.vec3):
         self.pos = pos
@@ -118,7 +120,6 @@ class Game:
 
         self.current_camera = Camera(camera_pos, camera_front, camera_up)
 
-
     def setup_shader_program(self):
         vertex_shader = glCreateShader(GL_VERTEX_SHADER)
         glShaderSource(vertex_shader, vertex_shader_source)
@@ -137,8 +138,50 @@ class Game:
         self.engine = Engine(self.shader_program)
         self.engine.start()
 
-    def process_input(self):
-        pass
+    def tick(self):  # previous process_input
+        current_frame = glfw.get_time()
+        delta_time = current_frame - last_frame
+        last_frame = current_frame
+
+        if glfw.get_key(self.window.window, glfw.KEY_ESCAPE) == glfw.PRESS:
+            glfw.set_window_should_close(self.window.window, True)
+
+        if glfw.get_key(self.window.window, glfw.KEY_W) == glfw.PRESS:
+            self.current_camera.pos += speed * self.current_camera.front * delta_time
+
+        if glfw.get_key(self.window.window, glfw.KEY_S) == glfw.PRESS:
+            self.current_camera.pos -= speed * self.current_camera.front * delta_time
+
+        if glfw.get_key(self.window.window, glfw.KEY_A) == glfw.PRESS:
+            self.current_camera.pos -= glm.normalize(glm.cross(self.current_camera.front, self.current_camera.up)) * speed * delta_time
+
+        if glfw.get_key(self.window.window, glfw.KEY_D) == glfw.PRESS:
+            self.current_camera.pos += glm.normalize(glm.cross(self.current_camera.front, self.current_camera.up)) * speed * delta_time
+
+        if glfw.get_key(self.window.window, glfw.KEY_SPACE) == glfw.PRESS:
+            self.current_camera.pos += self.current_camera.up * speed * delta_time
+
+        if glfw.get_key(self.window.window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
+            self.current_camera.pos -= self.current_camera.up * speed * delta_time
+
+        if glfw.get_key(self.window.window, glfw.KEY_F11) == glfw.PRESS:
+            if fullscreen:
+                glfw.set_window_monitor(self.window.window, None, 100, 100, width, height, glfw.DONT_CARE)
+                fullscreen = False
+            else:
+                monitor = glfw.get_primary_monitor()
+                mode = glfw.get_video_mode(monitor)
+                glfw.set_window_monitor(self.window.window, monitor, 0, 0, mode.size.width, mode.size.height, mode.refresh_rate)
+                fullscreen = True
+
+        msg = {player_id: [self.current_camera.pos.x,
+                           self.current_camera.pos.y,
+                           self.current_camera.pos.z,
+                           self.current_camera.front.x,
+                           self.current_camera.front.y,
+                           self.current_camera.front.z,
+                           ]}
+        self.engine.conn.update(msg)
 
     def render(self):
         pass
@@ -149,7 +192,6 @@ class Game:
             self.render()
             self.window.swap_buffers()
             self.window.poll_events()
-
 
 
 from src.engine import Engine, Server
