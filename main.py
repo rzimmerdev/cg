@@ -59,6 +59,9 @@ class Window:
         self.title = title
         self.window = None
 
+        self.previous_frame = 0.0
+        self.fullscreen = False
+
     def create_window(self):
         if not glfw.init():
             return
@@ -104,6 +107,16 @@ class Window:
     def terminate(self):
         glfw.terminate()
 
+    def toggle_fullscreen(self):
+        if self.fullscreen:
+            glfw.set_window_monitor(self.window, None, 100, 100, self.width, self.height, glfw.DONT_CARE)
+            self.fullscreen = False
+        else:
+            monitor = glfw.get_primary_monitor()
+            mode = glfw.get_video_mode(monitor)
+            glfw.set_window_monitor(self.window, monitor, 0, 0, mode.size.width, mode.size.height, mode.refresh_rate)
+            self.fullscreen = True
+
 
 class Game:
     def __init__(self):
@@ -140,39 +153,32 @@ class Game:
 
     def tick(self):  # previous process_input
         current_frame = glfw.get_time()
-        delta_time = current_frame - last_frame
-        last_frame = current_frame
+        delta = current_frame - self.window.previous_frame
+        self.window.previous_frame = current_frame
 
         if glfw.get_key(self.window.window, glfw.KEY_ESCAPE) == glfw.PRESS:
             glfw.set_window_should_close(self.window.window, True)
 
         if glfw.get_key(self.window.window, glfw.KEY_W) == glfw.PRESS:
-            self.current_camera.pos += speed * self.current_camera.front * delta_time
+            self.current_camera.pos += speed * self.current_camera.front * delta
 
         if glfw.get_key(self.window.window, glfw.KEY_S) == glfw.PRESS:
-            self.current_camera.pos -= speed * self.current_camera.front * delta_time
+            self.current_camera.pos -= speed * self.current_camera.front * delta
 
         if glfw.get_key(self.window.window, glfw.KEY_A) == glfw.PRESS:
-            self.current_camera.pos -= glm.normalize(glm.cross(self.current_camera.front, self.current_camera.up)) * speed * delta_time
+            self.current_camera.pos -= glm.normalize(glm.cross(self.current_camera.front, self.current_camera.up)) * speed * delta
 
         if glfw.get_key(self.window.window, glfw.KEY_D) == glfw.PRESS:
-            self.current_camera.pos += glm.normalize(glm.cross(self.current_camera.front, self.current_camera.up)) * speed * delta_time
+            self.current_camera.pos += glm.normalize(glm.cross(self.current_camera.front, self.current_camera.up)) * speed * delta
 
         if glfw.get_key(self.window.window, glfw.KEY_SPACE) == glfw.PRESS:
-            self.current_camera.pos += self.current_camera.up * speed * delta_time
+            self.current_camera.pos += self.current_camera.up * speed * delta
 
         if glfw.get_key(self.window.window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
-            self.current_camera.pos -= self.current_camera.up * speed * delta_time
+            self.current_camera.pos -= self.current_camera.up * speed * delta
 
         if glfw.get_key(self.window.window, glfw.KEY_F11) == glfw.PRESS:
-            if fullscreen:
-                glfw.set_window_monitor(self.window.window, None, 100, 100, width, height, glfw.DONT_CARE)
-                fullscreen = False
-            else:
-                monitor = glfw.get_primary_monitor()
-                mode = glfw.get_video_mode(monitor)
-                glfw.set_window_monitor(self.window.window, monitor, 0, 0, mode.size.width, mode.size.height, mode.refresh_rate)
-                fullscreen = True
+            self.window.toggle_fullscreen()
 
         msg = {player_id: [self.current_camera.pos.x,
                            self.current_camera.pos.y,
