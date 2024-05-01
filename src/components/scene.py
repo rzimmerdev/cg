@@ -1,6 +1,6 @@
 from typing import List
 
-from src.objects import Object
+from .object import Object
 
 
 class Scene:

@@ -4,7 +4,7 @@ from typing import List, Dict
 from OpenGL.GL.shaders import ShaderProgram
 
 from src.engine.multiplayer import Multiplayer
-from src.objects import Object, Model, Player, Scene
+from src.components import Object, Model, Player, Scene
 
 
 class Engine:

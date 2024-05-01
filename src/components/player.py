@@ -1,4 +1,4 @@
-from src.objects.object import Object
+from .object import Object
 
 
 class Player(Object):
