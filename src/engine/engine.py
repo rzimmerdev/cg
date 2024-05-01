@@ -4,7 +4,7 @@ from typing import List, Dict
 from OpenGL.GL.shaders import ShaderProgram
 
 from src.engine.multiplayer import Multiplayer
-from src.objects import Object, Model, Player
+from src.objects import Object, Model, Player, Scene
 
 
 class Engine:
@@ -17,15 +17,31 @@ class Engine:
         self.conn = Multiplayer()
         self.server = None
 
-    def add_objects(self, obj):
+        self.models = {}
+        self.scenes = {}
+
+    def register_model(self, path: str, texture: str, name: str = None):
+        model = Model(self.player_model.shader_program, path, texture)
+        if name:
+            self.models[name] = model
+        else:
+            self.models[path] = model
+        return model
+
+    def register_object(self, obj: List | Object):
         if isinstance(obj, list):
             self.objects.extend(obj)
         else:
             self.objects.append(obj)
 
+    def register_scene(self, scene: Scene):
+        self.scenes[scene.name] = scene
+
     def draw(self):
         for obj in self.objects:
             obj.draw()
+        for scene in self.scenes.values():
+            scene.draw()
         for player in self.players.values():
             player.draw()
 

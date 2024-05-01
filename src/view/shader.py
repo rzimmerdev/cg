@@ -1,5 +1,3 @@
-import math
-
 import glm
 import numpy as np
 from OpenGL.GL import *
