@@ -246,9 +246,10 @@ def main():
     try:
         player_id = engine.conn.connect()
     except ConnectionRefusedError:
-        server = Server()
-        server.start()
-        player_id = engine.conn.connect()
+        # server = Server()
+        # server.start()
+        # player_id = engine.conn.connect()
+        pass
 
     def process_input(window):
         global delta_time, last_frame, camera_pos, speed, fullscreen, width, height
@@ -288,14 +289,14 @@ def main():
                 glfw.set_window_monitor(window, monitor, 0, 0, mode.size.width, mode.size.height, mode.refresh_rate)
                 fullscreen = True
 
-        msg = {player_id: [camera_pos.x,
-                           camera_pos.y,
-                           camera_pos.z,
-                           camera_front.x,
-                           camera_front.y,
-                           camera_front.z,
-                           ]}
-        engine.conn.update(msg)
+        # msg = {player_id: [camera_pos.x,
+        #                    camera_pos.y,
+        #                    camera_pos.z,
+        #                    camera_front.x,
+        #                    camera_front.y,
+        #                    camera_front.z,
+        #                    ]}
+        # engine.conn.update(msg)
 
     def mouse_callback(window, xpos, ypos):
         global first_mouse, last_x, last_y, yaw, pitch
@@ -329,14 +330,14 @@ def main():
         global camera_front
         camera_front = glm.normalize(front)
 
-        msg = {player_id: [camera_pos.x,
-                           camera_pos.y,
-                           camera_pos.z,
-                           camera_front.x,
-                           camera_front.y,
-                           camera_front.z,
-                           ]}
-        engine.conn.update(msg)
+        # msg = {player_id: [camera_pos.x,
+        #                    camera_pos.y,
+        #                    camera_pos.z,
+        #                    camera_front.x,
+        #                    camera_front.y,
+        #                    camera_front.z,
+        #                    ]}
+        # engine.conn.update(msg)
 
     glfw.set_cursor_pos_callback(window, mouse_callback)
 
