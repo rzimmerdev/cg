@@ -1,3 +1,5 @@
+import time
+
 import glfw
 import glm
 import numpy as np
@@ -42,14 +44,26 @@ class Game:
         self.engine = Engine(self.shader_program)
 
     def start(self):
+        start_time = time.time()
+
+        framerate = 60
+        delay = 1 / framerate
+
         while not self.window.should_close():
             self.move_camera()
             self.render()
+
+            elapsed_time = time.time() - start_time
+            if elapsed_time < delay:
+                time.sleep(delay - elapsed_time)
+            start_time = time.time()
+
             self.window.swap_buffers()
             self.window.poll_events()
 
     def stop(self):
-        self.window.terminate()
+        glfw.destroy_window(self.window.window)
+        glfw.terminate()
 
     def move_camera(self):
         current_frame = glfw.get_time()
@@ -62,7 +76,7 @@ class Game:
         if glfw.get_key(self.window.window, glfw.KEY_W) == glfw.PRESS:
             self.camera.pos += self.camera.speed * self.camera.front * delta
 
-        if glfw.get_key(self.window.window, glfw.KEY_S) == glfw.PRESS:
+        elif glfw.get_key(self.window.window, glfw.KEY_S) == glfw.PRESS:
             self.camera.pos -= self.camera.speed * self.camera.front * delta
 
         if glfw.get_key(self.window.window, glfw.KEY_A) == glfw.PRESS:
@@ -74,7 +88,7 @@ class Game:
         if glfw.get_key(self.window.window, glfw.KEY_SPACE) == glfw.PRESS:
             self.camera.pos += self.camera.up * self.camera.speed * delta
 
-        if glfw.get_key(self.window.window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
+        elif glfw.get_key(self.window.window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
             self.camera.pos -= self.camera.up * self.camera.speed * delta
 
         if glfw.get_key(self.window.window, glfw.KEY_F11) == glfw.PRESS:
@@ -128,4 +142,4 @@ class Game:
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE,
                            glm.value_ptr(projection))
 
-        self.engine.graphics()
+        self.engine.render()

@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import glm
 
 from .model import Model
@@ -24,11 +22,14 @@ class Object:
         matrix = glm.scale(matrix, self.scale)
         self.model.draw(matrix)
 
-    def rescale(self, factor: Tuple):
+    def rescale(self, factor: tuple):
         self.scale *= glm.vec3(*factor)
+        return self
 
-    def move(self, position: Tuple):
+    def move(self, position: tuple):
         self.position += glm.vec3(*position)
+        return self
 
-    def rotate(self, rotation: Tuple):
+    def rotate(self, rotation: tuple):
         self.rotation += glm.vec3(*rotation)
+        return self

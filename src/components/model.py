@@ -21,7 +21,7 @@ def load_texture(file_path):
     return texture_id
 
 
-def load_wavefront(file_path):
+def read_wavefront(file_path):
     vertices = []
     texture_coords = []
     faces = []
@@ -61,7 +61,7 @@ class Model:
     def load(self, obj_file, texture_files):
         if not isinstance(texture_files, list):
             texture_files = [texture_files]
-        self.vertices, self.texture_coords, self.faces = load_wavefront(obj_file)
+        self.vertices, self.texture_coords, self.faces = read_wavefront(obj_file)
 
         triangle_vertices = []
         for face in self.faces:

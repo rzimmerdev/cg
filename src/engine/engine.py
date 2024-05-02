@@ -40,20 +40,10 @@ class Engine:
     def physics(self):
         pass
 
-    def graphics(self):
+    def render(self):
         for obj in self.objects:
             obj.draw()
         for scene in self.scenes.values():
             scene.draw()
         for player in self.players.values():
             player.draw()
-
-    def start(self):
-        self.running.set()
-        thread = threading.Thread(target=self.tick)
-        thread.start()
-
-    def tick(self):
-        while self.running.is_set():
-            self.physics()
-            self.graphics()

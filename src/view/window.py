@@ -54,9 +54,6 @@ class Window:
     def poll_events(self):
         glfw.poll_events()
 
-    def terminate(self):
-        glfw.terminate()
-
     def toggle_fullscreen(self):
         if self.fullscreen:
             glfw.set_window_monitor(self.window, None, 100, 100, self.width, self.height, glfw.DONT_CARE)
