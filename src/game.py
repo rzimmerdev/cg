@@ -50,7 +50,7 @@ class Game:
         delay = 1 / framerate
 
         while not self.window.should_close():
-            self.move_camera()
+            self.tick()
             self.render()
 
             elapsed_time = time.time() - start_time
@@ -65,7 +65,7 @@ class Game:
         glfw.destroy_window(self.window.window)
         glfw.terminate()
 
-    def move_camera(self):
+    def tick(self):
         current_frame = glfw.get_time()
         delta = current_frame - self.window.previous_frame
         self.window.previous_frame = current_frame
@@ -93,6 +93,8 @@ class Game:
 
         if glfw.get_key(self.window.window, glfw.KEY_F11) == glfw.PRESS:
             self.window.toggle_fullscreen()
+
+        self.engine.tick()
 
     def mouse_callback(self, window, xpos, ypos):
         # global first_mouse, last_x, last_y, yaw, pitch

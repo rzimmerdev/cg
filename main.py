@@ -69,6 +69,8 @@ class MainScene(Scene):
         monster.move((0, 0, -2))
         monster.rescale((0.5, 0.5, 0.5))
 
+        monster.tick_methods.append(lambda: monster.rotate((0, 1e-3, 0)))
+
         # fabienne
         fabienne = Object(self.models["fabienne"])
         fabienn_scale = 1e-2

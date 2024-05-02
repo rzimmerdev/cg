@@ -10,6 +10,8 @@ class Object:
         self.rotation = glm.vec3(0.0, 0.0, 0.0)
         self.scale = glm.vec3(1.0, 1.0, 1.0)
 
+        self.tick_methods = []
+
     def set_model(self, model):
         self.model = model
 
@@ -32,4 +34,9 @@ class Object:
 
     def rotate(self, rotation: tuple):
         self.rotation += glm.vec3(*rotation)
+        return self
+
+    def tick(self):
+        for method in self.tick_methods:
+            method()
         return self

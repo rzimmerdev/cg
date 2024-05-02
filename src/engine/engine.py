@@ -17,8 +17,8 @@ class Engine:
         self.conn = Multiplayer()
         self.server = None
 
-        self.models = {}
-        self.scenes = {}
+        self.models: Dict[str, Model] = {}
+        self.scenes: Dict[str, Scene] = {}
 
     def register_model(self, path: str, texture: str, name: str = None):
         model = Model(self.player_model.shader_program, path, texture)
@@ -37,8 +37,12 @@ class Engine:
     def register_scene(self, scene: Scene):
         self.scenes[scene.name] = scene
 
-    def physics(self):
-        pass
+    def tick(self):
+        for obj in self.objects:
+            obj.tick()
+
+        for scene in self.scenes.values():
+            scene.tick()
 
     def render(self):
         for obj in self.objects:

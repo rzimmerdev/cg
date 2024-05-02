@@ -18,6 +18,8 @@ class Scene:
         if objects:
             self.add_object(objects)
 
+        self.tick_methods = []
+
     def add_object(self, obj: List | Object):
         if isinstance(obj, Object):
             self.objects.append(obj)
@@ -73,3 +75,12 @@ class Scene:
 
         for scene in self.sub_scenes.values():
             scene.rotate(rotation)
+
+    def tick(self):
+        for method in self.tick_methods:
+            method()
+        for obj in self.objects:
+            obj.tick()
+        for scene in self.sub_scenes.values():
+            scene.tick()
+        return self
