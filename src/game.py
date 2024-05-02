@@ -43,7 +43,7 @@ class Game:
 
     def start(self):
         while not self.window.should_close():
-            self.tick()
+            self.move_camera()
             self.render()
             self.window.swap_buffers()
             self.window.poll_events()
@@ -51,7 +51,7 @@ class Game:
     def stop(self):
         self.window.terminate()
 
-    def tick(self):  # previous process_input
+    def move_camera(self):
         current_frame = glfw.get_time()
         delta = current_frame - self.window.previous_frame
         self.window.previous_frame = current_frame
@@ -128,4 +128,4 @@ class Game:
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE,
                            glm.value_ptr(projection))
 
-        self.engine.draw()
+        self.engine.graphics()

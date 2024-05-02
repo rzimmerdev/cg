@@ -37,7 +37,10 @@ class Engine:
     def register_scene(self, scene: Scene):
         self.scenes[scene.name] = scene
 
-    def draw(self):
+    def physics(self):
+        pass
+
+    def graphics(self):
         for obj in self.objects:
             obj.draw()
         for scene in self.scenes.values():
@@ -51,7 +54,6 @@ class Engine:
         thread.start()
 
     def tick(self):
-        pass
-
-    def handle_player(self):
-        pass
+        while self.running.is_set():
+            self.physics()
+            self.graphics()
