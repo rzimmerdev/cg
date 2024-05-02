@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 
 import glm
 
@@ -9,6 +9,7 @@ class Scene:
     def __init__(self, name: str, objects: List[Object] = None):
         self.name = name
         self.objects: List[Object] = []
+        self.sub_scenes: Dict[str, "Scene"] = {}
 
         self.position = glm.vec3(0.0, 0.0, 0.0)
         self.rotation = glm.vec3(0.0, 0.0, 0.0)
@@ -27,17 +28,24 @@ class Scene:
                 elif isinstance(o, list):
                     self.add_object(o)
 
+    def add_scene(self, scene: "Scene"):
+        self.sub_scenes[scene.name] = scene
+
     def draw(self):
         for obj in self.objects:
             obj.draw()
+        for scene in self.sub_scenes.values():
+            scene.draw()
 
     def move(self, position: tuple):
         self.position += glm.vec3(*position)
 
         for obj in self.objects:
             obj.move(position)
+        for scene in self.sub_scenes.values():
+            scene.move(position)
 
-    def scale(self, factor: tuple):
+    def rescale(self, factor: tuple):
         self.scale *= glm.vec3(*factor)
 
         for obj in self.objects:
@@ -47,15 +55,21 @@ class Scene:
 
             obj.scale *= glm.vec3(*factor)
 
+        for scene in self.sub_scenes.values():
+            scene.rescale(factor)
+
     def rotate(self, rotation: tuple):
-        rotation = glm.vec3(*rotation)
-        rotation_matrix = glm.rotate(glm.mat4(1.0), rotation.x, glm.vec3(1.0, 0.0, 0.0))
-        rotation_matrix = glm.rotate(rotation_matrix, rotation.y, glm.vec3(0.0, 1.0, 0.0))
-        rotation_matrix = glm.rotate(rotation_matrix, rotation.z, glm.vec3(0.0, 0.0, 1.0))
+        self.rotation = glm.vec3(*rotation)
+        rotation_matrix = glm.rotate(glm.mat4(1.0), self.rotation.x, glm.vec3(1.0, 0.0, 0.0))
+        rotation_matrix = glm.rotate(rotation_matrix, self.rotation.y, glm.vec3(0.0, 1.0, 0.0))
+        rotation_matrix = glm.rotate(rotation_matrix, self.rotation.z, glm.vec3(0.0, 0.0, 1.0))
 
         for obj in self.objects:
             obj.position -= self.position
             obj.position = glm.vec3(rotation_matrix * glm.vec4(obj.position, 1.0))
             obj.position += self.position
 
-            obj.rotation += rotation
+            obj.rotation += self.rotation
+
+        for scene in self.sub_scenes.values():
+            scene.rotate(rotation)
