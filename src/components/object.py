@@ -67,6 +67,25 @@ class Object:
         if glfw.KEY_LEFT_SHIFT in key_actions:
             self.position -= up * self.speed * delta
 
+    def apply_arrow_movement(self, key_actions: Set[int], front, up, delta: float):
+        if glfw.KEY_UP in key_actions:
+            self.position += self.speed * front * delta
+
+        if glfw.KEY_DOWN in key_actions:
+            self.position -= self.speed * front * delta
+
+        if glfw.KEY_LEFT in key_actions:
+            self.position -= glm.normalize(glm.cross(front, up)) * self.speed * delta
+
+        if glfw.KEY_RIGHT in key_actions:
+            self.position += glm.normalize(glm.cross(front, up)) * self.speed * delta
+
+        if glfw.KEY_SPACE in key_actions:
+            self.position += up * self.speed * delta
+
+        if glfw.KEY_LEFT_SHIFT in key_actions:
+            self.position -= up * self.speed * delta
+
 
 class BoundObject(ABC):
     def __init__(self, *args, **kwargs):

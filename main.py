@@ -79,7 +79,7 @@ class MainScene(Scene):
         monster.move((0, 0, -2))
         monster.rescale((0.5, 0.5, 0.5))
 
-        monster.tick_methods.append(lambda: monster.rotate((0, 1e-3, 0)))
+        monster.tick_methods.append(lambda: monster.apply_arrow_movement(eng)))
 
         # fabienne
         # fabienne = Object(self.models["fabienne"])
