@@ -45,7 +45,7 @@ class Object:
 
     def tick(self, *args, **kwargs):
         for method in self.tick_methods:
-            method()
+            method(*args, **kwargs)
         return self
 
     def apply_movement(self, key_actions: Set[int], front, up, delta: float):
@@ -140,6 +140,6 @@ class InteractiveObject(Object):
             method(key_actions)
         return self
 
-    def interact(self, obj: Union["InteractiveObject", BoundObject]):
+    def interact(self, obj: Union["InteractiveObject", BoundObject], delta):
         if isinstance(obj, BoundObject):
             self.position = obj.clip(self.position)

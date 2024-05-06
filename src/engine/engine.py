@@ -12,11 +12,11 @@ class Physics:
     def register_object(self, obj: BoundObject):
         self.objects.append(obj)
 
-    def tick(self, interactive_objects: List[InteractiveObject]):
+    def tick(self, interactive_objects: List[InteractiveObject], delta):
         for obj in self.objects:
             for interactive_object in interactive_objects:
                 if not obj.contains(interactive_object.position):
-                    interactive_object.interact(obj)
+                    interactive_object.interact(obj, delta)
 
 
 class Engine:
@@ -51,14 +51,14 @@ class Engine:
     def register_scene(self, scene: Scene):
         self.scenes[scene.name] = scene
 
-    def tick(self, key_actions: Set[int]):
+    def tick(self, key_actions: Set[int], delta: float):
         for obj in self.objects:
-            obj.tick(key_actions)
+            obj.tick(key_actions, delta)
 
         for scene in self.scenes.values():
-            scene.tick()
+            scene.tick(key_actions, delta)
 
-        self.physics.tick(self.interactive_objects)
+        self.physics.tick(self.interactive_objects, delta)
 
     def render(self):
         for obj in self.objects:

@@ -1,8 +1,8 @@
 import random
-from typing import Dict
+from typing import Dict, Set
 
 from src.game import Game
-from src.components import Object, Scene, Model, Player, SphereBound
+from src.components import Object, Scene, Model, Player, SphereBound, NormalBound
 
 
 def generate(model, n, a, b, y=0.5):
@@ -10,18 +10,19 @@ def generate(model, n, a, b, y=0.5):
 
 
 class MainScene(Scene):
-    def __init__(self):
+    def __init__(self, engine):
         super().__init__("main", [])
         self.models: Dict[str, Model] = {}
+        self.engine = engine
 
-    def register(self, engine):
-        sky = engine.register_model("models/sky/sky.obj", "models/sky/sky.jpg", "sky")
-        rock = engine.register_model("models/terrain/rock.obj", "models/terrain/rock.jpg", "terrain")
+    def register(self):
+        sky = self.engine.register_model("models/sky/sky.obj", "models/sky/sky.jpg", "sky")
+        rock = self.engine.register_model("models/terrain/rock.obj", "models/terrain/rock.jpg", "terrain")
 
-        ground = engine.register_model("models/ground/ground.obj", "models/ground/ground.jpg", "ground")
-        house = engine.register_model("models/house/house.obj", "models/house/house.png", "house")
-        cube = engine.register_model("models/caixa/caixa.obj", "models/caixa/caixa.jpg", "cube")
-        monster = engine.register_model("models/monster/monster.obj", "models/monster/monster.jpg", "monster")
+        ground = self.engine.register_model("models/ground/ground.obj", "models/ground/ground.jpg", "ground")
+        house = self.engine.register_model("models/house/house.obj", "models/house/house.png", "house")
+        cube = self.engine.register_model("models/caixa/caixa.obj", "models/caixa/caixa.jpg", "cube")
+        monster = self.engine.register_model("models/monster/monster.obj", "models/monster/monster.jpg", "monster")
         # fabienne = engine.register_model("models/fabienne/fabienne.obj", "models/fabienne/fabienne.jpg", "fabienne")
 
         # denis = engine.register_model("models/denis/denis.obj", "models/denis/denis.jpg", "denis")
@@ -37,7 +38,7 @@ class MainScene(Scene):
             # "denis": denis,
         }
 
-        engine.register_scene(self)
+        self.engine.register_scene(self)
 
         return self
 
@@ -58,8 +59,11 @@ class MainScene(Scene):
         terrain.rescale((0.2, 0.05, 0.2))
         terrain.move((0, -1.5, 0))
 
-        sky_bound = SphereBound((0, 0, 0), radius=100)
-        print(sky_bound.contains((50, 0, 50)))
+        sky_bound = SphereBound((0, 0, 0), radius=45)
+        self.engine.physics.register_object(sky_bound)
+
+        normal_bound = NormalBound((0, -1, 0), (0, -0.7, 0))
+        self.engine.physics.register_object(normal_bound)
 
         return Scene("environment", [sky, terrain])
 
@@ -79,7 +83,26 @@ class MainScene(Scene):
         monster.move((0, 0, -2))
         monster.rescale((0.5, 0.5, 0.5))
 
-        monster.tick_methods.append(lambda: monster.apply_arrow_movement(eng)))
+        import glfw
+        import glm
+
+        def apply_movement(key_actions: Set[int], delta: float):
+            up = glm.vec3(0.0, 1.0, 0.0)
+            front = glm.vec3(0.0, 0.0, 1.0)
+
+            if glfw.KEY_UP in key_actions:
+                monster.position += monster.speed * front * delta
+
+            if glfw.KEY_DOWN in key_actions:
+                monster.position -= monster.speed * front * delta
+
+            if glfw.KEY_LEFT in key_actions:
+                monster.position -= glm.normalize(glm.cross(front, up)) * monster.speed * delta
+
+            if glfw.KEY_RIGHT in key_actions:
+                monster.position += glm.normalize(glm.cross(front, up)) * monster.speed * delta
+
+        monster.tick_methods.append(apply_movement)
 
         # fabienne
         # fabienne = Object(self.models["fabienne"])
@@ -112,9 +135,10 @@ def main():
     game.create()
 
     player = Player()
+    player.move((0, 0.5, 0))
     game.add_player(player)
 
-    main_scene = MainScene().register(game.engine)
+    main_scene = MainScene(game.engine).register()
     main_scene.load()
 
     try:

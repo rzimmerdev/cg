@@ -87,11 +87,12 @@ class Game:
         if delta > 1 / 60:
             delta = 1 / 60
 
-        self.camera.apply_movement(self.selected_keys, delta)
+        # self.camera.apply_movement(self.selected_keys, delta)
         if self.current_player:
             self.current_player.apply_movement(self.selected_keys, self.camera.front, self.camera.up, delta)
+            self.camera.position = self.current_player.position
 
-        self.engine.tick(self.selected_keys)
+        self.engine.tick(self.selected_keys, delta)
 
     def key_callback(self, window, key, scancode, action, mods):
         if key == glfw.KEY_ESCAPE and action == glfw.PRESS:

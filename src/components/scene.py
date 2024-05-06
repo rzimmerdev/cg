@@ -76,11 +76,11 @@ class Scene:
         for scene in self.sub_scenes.values():
             scene.rotate(rotation)
 
-    def tick(self):
+    def tick(self, *args, **kwargs):
         for method in self.tick_methods:
-            method()
+            method(*args, **kwargs)
         for obj in self.objects:
-            obj.tick()
+            obj.tick(*args, **kwargs)
         for scene in self.sub_scenes.values():
-            scene.tick()
+            scene.tick(*args, **kwargs)
         return self
