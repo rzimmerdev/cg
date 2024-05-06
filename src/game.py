@@ -1,4 +1,5 @@
 import time
+from typing import Dict
 
 import glfw
 import glm
@@ -6,9 +7,9 @@ import numpy as np
 from OpenGL.GL.shaders import ShaderProgram, compileProgram
 from OpenGL.GL import *
 
-from src.view.camera import Camera
+from src.components import Player
+from src.view import Camera, Window
 from src.engine import Engine
-from src.view.window import Window
 
 
 vertex_shader_source = open("shaders/vertex.glsl").read()
@@ -22,10 +23,14 @@ class Game:
 
         self.shader_program: ShaderProgram | None = None
         self.engine: Engine | None = None
+        self.selected_keys = set()
+
+        self.players: Dict[int, Player] = {}
 
     def create(self):
         self.window.create_window()
-        self.window.setup(self.mouse_callback)
+        self.window.set_cursor_callback(self.mouse_callback)
+        self.window.set_key_callback(self.key_callback)
         self.create_shader()
 
     def create_shader(self):
@@ -65,40 +70,46 @@ class Game:
         glfw.destroy_window(self.window.window)
         glfw.terminate()
 
+    @property
+    def current_player(self):
+        return self.players.get(0, None)
+
+    def add_player(self, player: Player):
+        player.id = len(self.players)
+        self.players[player.id] = player
+        self.engine.register_object(player)
+
     def tick(self):
         current_frame = glfw.get_time()
         delta = current_frame - self.window.previous_frame
-        self.window.previous_frame = current_frame
 
-        if glfw.get_key(self.window.window, glfw.KEY_ESCAPE) == glfw.PRESS:
-            glfw.set_window_should_close(self.window.window, True)
+        # cap delta to 60 fps
+        if delta > 1 / 60:
+            delta = 1 / 60
 
-        if glfw.get_key(self.window.window, glfw.KEY_W) == glfw.PRESS:
-            self.camera.pos += self.camera.speed * self.camera.front * delta
+        self.camera.apply_movement(self.selected_keys, delta)
+        if self.current_player:
+            self.current_player.apply_movement(self.selected_keys, self.camera.front, self.camera.up, delta)
 
-        elif glfw.get_key(self.window.window, glfw.KEY_S) == glfw.PRESS:
-            self.camera.pos -= self.camera.speed * self.camera.front * delta
+        self.engine.tick(self.selected_keys)
 
-        if glfw.get_key(self.window.window, glfw.KEY_A) == glfw.PRESS:
-            self.camera.pos -= glm.normalize(glm.cross(self.camera.front, self.camera.up)) * self.camera.speed * delta
+    def key_callback(self, window, key, scancode, action, mods):
+        if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
+            glfw.set_window_should_close(window, True)
 
-        if glfw.get_key(self.window.window, glfw.KEY_D) == glfw.PRESS:
-            self.camera.pos += glm.normalize(glm.cross(self.camera.front, self.camera.up)) * self.camera.speed * delta
-
-        if glfw.get_key(self.window.window, glfw.KEY_SPACE) == glfw.PRESS:
-            self.camera.pos += self.camera.up * self.camera.speed * delta
-
-        elif glfw.get_key(self.window.window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
-            self.camera.pos -= self.camera.up * self.camera.speed * delta
-
-        if glfw.get_key(self.window.window, glfw.KEY_F11) == glfw.PRESS:
+        if key == glfw.KEY_F11 and action == glfw.PRESS:
             self.window.toggle_fullscreen()
 
-        self.engine.tick()
+        if action == glfw.PRESS:
+            self.selected_keys.add(key)
+
+        if action == glfw.RELEASE:
+            self.selected_keys.remove(key)
+
+        if key == glfw.KEY_F11 and action == glfw.PRESS:
+            self.window.toggle_fullscreen()
 
     def mouse_callback(self, window, xpos, ypos):
-        # global first_mouse, last_x, last_y, yaw, pitch
-
         if self.camera.first_mouse:
             self.camera.last_x = xpos
             self.camera.last_y = ypos
@@ -133,7 +144,7 @@ class Game:
 
         model = glm.mat4(1.0)
         projection = glm.perspective(glm.radians(self.camera.fov), self.window.width / self.window.height, 0.1, 100.0)
-        view = glm.lookAt(self.camera.pos, self.camera.pos + self.camera.front, self.camera.up)
+        view = glm.lookAt(self.camera.position, self.camera.position + self.camera.front, self.camera.up)
 
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE,
                            glm.value_ptr(model))

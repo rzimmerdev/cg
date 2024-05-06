@@ -1,5 +1,5 @@
-from .object import Object
+from .object import InteractiveObject
 
 
-class Player(Object):
+class Player(InteractiveObject):
     pass

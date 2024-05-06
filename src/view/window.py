@@ -30,17 +30,17 @@ class Window:
         glfw.set_input_mode(self.window, glfw.CURSOR, glfw.CURSOR_DISABLED)
         return self.window
 
-    def setup(self, mouse_callback):
-        glfw.set_cursor_pos_callback(self.window, mouse_callback)
-
     def close_window(self):
         glfw.terminate()
 
     def set_framebuffer_size_callback(self, callback):
         glfw.set_framebuffer_size_callback(self.window, callback)
 
-    def set_cursor_pos_callback(self, callback):
+    def set_cursor_callback(self, callback):
         glfw.set_cursor_pos_callback(self.window, callback)
+
+    def set_key_callback(self, callback):
+        glfw.set_key_callback(self.window, callback)
 
     def set_input_mode(self, mode):
         glfw.set_input_mode(self.window, glfw.CURSOR, mode)
