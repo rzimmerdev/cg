@@ -6,6 +6,10 @@ class Window:
     def __init__(self, width: int = 800, height: int = 600, title: str = "Game"):
         self.width = width
         self.height = height
+
+        self._x = 100
+        self._y = 100
+
         self.title = title
         self.window = None
 
@@ -27,7 +31,8 @@ class Window:
 
         glfw.make_context_current(self.window)
         glfw.set_framebuffer_size_callback(self.window, self.resize)
-        glfw.set_input_mode(self.window, glfw.CURSOR, glfw.CURSOR_DISABLED)
+        glfw.set_input_mode(self.window, glfw.CURSOR, glfw.CURSOR_NORMAL)
+
         return self.window
 
     def close_window(self):
@@ -55,16 +60,17 @@ class Window:
         glfw.poll_events()
 
     def toggle_fullscreen(self):
+        self.fullscreen = not self.fullscreen
         if self.fullscreen:
-            glfw.set_window_monitor(self.window, None, 100, 100, self.width, self.height, glfw.DONT_CARE)
-            self.fullscreen = False
-        else:
             monitor = glfw.get_primary_monitor()
             mode = glfw.get_video_mode(monitor)
-            glfw.set_window_monitor(self.window, monitor, 0, 0, mode.size.width, mode.size.height, mode.refresh_rate)
-            self.fullscreen = True
+            size = mode[0]
+            glfw.set_window_monitor(self.window, monitor, self._x, self._y, size.width, size.height, mode.refresh_rate)
+            glfw.set_input_mode(self.window, glfw.CURSOR, glfw.CURSOR_DISABLED)
 
-    def resize(self, width, height):
-        self.width = width
-        self.height = height
-        glViewport(0, 0, self.width, self.height)
+        else:
+            glfw.set_window_monitor(self.window, None, 100, 100, self.width, self.height, 0)
+            glfw.set_input_mode(self.window, glfw.CURSOR, glfw.CURSOR_NORMAL)
+
+    def resize(self, window, width, height, *args):
+        glViewport(0, 0, width, height)

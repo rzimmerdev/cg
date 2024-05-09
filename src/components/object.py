@@ -1,7 +1,6 @@
 from abc import ABC
-from typing import Union, Set
+from typing import Union
 
-import glfw
 import glm
 
 from .model import Model
@@ -47,44 +46,6 @@ class Object:
         for method in self.tick_methods:
             method(*args, **kwargs)
         return self
-
-    def apply_movement(self, key_actions: Set[int], front, up, delta: float):
-        if glfw.KEY_W in key_actions:
-            self.position += self.speed * front * delta
-
-        if glfw.KEY_S in key_actions:
-            self.position -= self.speed * front * delta
-
-        if glfw.KEY_A in key_actions:
-            self.position -= glm.normalize(glm.cross(front, up)) * self.speed * delta
-
-        if glfw.KEY_D in key_actions:
-            self.position += glm.normalize(glm.cross(front, up)) * self.speed * delta
-
-        if glfw.KEY_SPACE in key_actions:
-            self.position += up * self.speed * delta
-
-        if glfw.KEY_LEFT_SHIFT in key_actions:
-            self.position -= up * self.speed * delta
-
-    def apply_arrow_movement(self, key_actions: Set[int], front, up, delta: float):
-        if glfw.KEY_UP in key_actions:
-            self.position += self.speed * front * delta
-
-        if glfw.KEY_DOWN in key_actions:
-            self.position -= self.speed * front * delta
-
-        if glfw.KEY_LEFT in key_actions:
-            self.position -= glm.normalize(glm.cross(front, up)) * self.speed * delta
-
-        if glfw.KEY_RIGHT in key_actions:
-            self.position += glm.normalize(glm.cross(front, up)) * self.speed * delta
-
-        if glfw.KEY_SPACE in key_actions:
-            self.position += up * self.speed * delta
-
-        if glfw.KEY_LEFT_SHIFT in key_actions:
-            self.position -= up * self.speed * delta
 
 
 class BoundObject(ABC):

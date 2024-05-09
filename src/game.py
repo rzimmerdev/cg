@@ -87,7 +87,6 @@ class Game:
         if delta > 1 / 60:
             delta = 1 / 60
 
-        # self.camera.apply_movement(self.selected_keys, delta)
         if self.current_player:
             self.current_player.apply_movement(self.selected_keys, self.camera.front, self.camera.up, delta)
             self.camera.position = self.current_player.position
@@ -100,15 +99,16 @@ class Game:
 
         if key == glfw.KEY_F11 and action == glfw.PRESS:
             self.window.toggle_fullscreen()
+            return
 
         if action == glfw.PRESS:
             self.selected_keys.add(key)
 
         if action == glfw.RELEASE:
-            self.selected_keys.remove(key)
-
-        if key == glfw.KEY_F11 and action == glfw.PRESS:
-            self.window.toggle_fullscreen()
+            try:
+                self.selected_keys.remove(key)
+            except KeyError:
+                pass
 
     def mouse_callback(self, window, xpos, ypos):
         if self.camera.first_mouse:

@@ -30,12 +30,9 @@ class Engine:
 
         self.physics = Physics()
 
-    def register_model(self, path: str, texture: str, name: str = None):
-        model = Model(self.shader_program, path, texture)
-        if name:
-            self.models[name] = model
-        else:
-            self.models[path] = model
+    def register_model(self, name: str, wavefront_path: str):
+        model = Model(self.shader_program, wavefront_path)
+        self.models[name] = model
         return model
 
     def register_object(self, obj: List | Object):

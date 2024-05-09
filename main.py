@@ -16,26 +16,28 @@ class MainScene(Scene):
         self.engine = engine
 
     def register(self):
-        sky = self.engine.register_model("models/sky/sky.obj", "models/sky/sky.jpg", "sky")
-        rock = self.engine.register_model("models/terrain/rock.obj", "models/terrain/rock.jpg", "terrain")
+        sky = self.engine.register_model("sky", "models/sky")
+        terrain = self.engine.register_model("terrain", "models/terrain")
 
-        ground = self.engine.register_model("models/ground/ground.obj", "models/ground/ground.jpg", "ground")
-        house = self.engine.register_model("models/house/house.obj", "models/house/house.png", "house")
-        cube = self.engine.register_model("models/caixa/caixa.obj", "models/caixa/caixa.jpg", "cube")
-        monster = self.engine.register_model("models/monster/monster.obj", "models/monster/monster.jpg", "monster")
-        # fabienne = engine.register_model("models/fabienne/fabienne.obj", "models/fabienne/fabienne.jpg", "fabienne")
+        ground = self.engine.register_model("ground", "models/ground")
+        house = self.engine.register_model("house", "models/house")
+        cube = self.engine.register_model("cube", "models/caixa")
+        monster = self.engine.register_model("monster", "models/monster")
+        fabienne = self.engine.register_model("fabienne", "models/fabienne")
 
-        # denis = engine.register_model("models/denis/denis.obj", "models/denis/denis.jpg", "denis")
-        # engine.register_model("models/tree/Tree1.obj", "models/tree/BarkDecidious0143_5_S.jpg", "tree")
+        denis = self.engine.register_model("denis", "models/denis")
+        tree = self.engine.register_model("tree", "models/tree")
+
         self.models = {
             "sky": sky,
-            "rock": rock,
+            "terrain": terrain,
             "ground": ground,
             "house": house,
             "cube": cube,
             "monster": monster,
-            # "fabienne": fabienne,
-            # "denis": denis,
+            "fabienne": fabienne,
+            "denis": denis,
+            "tree": tree,
         }
 
         self.engine.register_scene(self)
@@ -55,7 +57,7 @@ class MainScene(Scene):
     def environment(self):
         sky = Object(self.models["sky"])
         sky.rescale((1, 1, 1))
-        terrain = Object(self.models["rock"])
+        terrain = Object(self.models["terrain"])
         terrain.rescale((0.2, 0.05, 0.2))
         terrain.move((0, -1.5, 0))
 
@@ -65,7 +67,8 @@ class MainScene(Scene):
         normal_bound = NormalBound((0, -1, 0), (0, -0.7, 0))
         self.engine.physics.register_object(normal_bound)
 
-        return Scene("environment", [sky, terrain])
+        # return Scene("environment", [sky, terrain])
+        return Scene("environment", [sky, terrain] + [])
 
     @property
     def inside(self):
@@ -86,7 +89,7 @@ class MainScene(Scene):
         import glfw
         import glm
 
-        def apply_movement(key_actions: Set[int], delta: float):
+        def arrow_movement(key_actions: Set[int], delta: float):
             up = glm.vec3(0.0, 1.0, 0.0)
             front = glm.vec3(0.0, 0.0, 1.0)
 
@@ -102,32 +105,30 @@ class MainScene(Scene):
             if glfw.KEY_RIGHT in key_actions:
                 monster.position += glm.normalize(glm.cross(front, up)) * monster.speed * delta
 
-        monster.tick_methods.append(apply_movement)
+        monster.tick_methods.append(arrow_movement)
 
         # fabienne
-        # fabienne = Object(self.models["fabienne"])
-        # fabienn_scale = 1e-2
-        # fabienne.rescale(tuple([fabienn_scale] * 3))
-        # fabienne.move((-3, 0, 4))
-        # fabienne.rotate((0, 1, 0))
+        fabienne = Object(self.models["fabienne"])
+        fabienn_scale = 1e-2
+        fabienne.rescale(tuple([fabienn_scale] * 3))
+        fabienne.move((-3, 0, 4))
+        fabienne.rotate((0, 1, 0))
 
-        return Scene("inside", [house] + boxes + [ground] + [monster] + [])
+        return Scene("inside", [house, ground, monster, fabienne] + boxes)
 
     @property
     def outside(self):
         # denis
-        # denis = Object(self.models["denis"])
-        # denis_scale = 1e-2
-        # denis.rescale(tuple([denis_scale] * 3))
-        # denis.move((0, 0, 5))
+        denis = Object(self.models["denis"])
+        denis_scale = 1e-2
+        denis.rescale(tuple([denis_scale] * 3))
+        denis.move((0, 0, 5))
 
         # trees
-        # trees = generate(engine.models["tree"], 100, a, b)
+        a, b = -15, 15
+        trees = generate(self.models["tree"], 5, a, b)
 
-        # car
-        # car = Object(engine.models["car"])
-
-        return Scene("outside", [])
+        return Scene("outside", [denis] + trees)
 
 
 def main():
