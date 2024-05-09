@@ -73,7 +73,7 @@ class MainScene(Scene):
     @property
     def inside(self):
         # house model
-        # house = Object(self.models["house"])
+        house = Object(self.models["house"])
         ground = Object(self.models["ground"])
         ground.rescale((10, 0.05, 10))
 
@@ -108,27 +108,27 @@ class MainScene(Scene):
         monster.tick_methods.append(arrow_movement)
 
         # fabienne
-        # fabienne = Object(self.models["fabienne"])
-        # fabienn_scale = 1e-2
-        # fabienne.rescale(tuple([fabienn_scale] * 3))
-        # fabienne.move((-3, 0, 4))
-        # fabienne.rotate((0, 1, 0))
+        fabienne = Object(self.models["fabienne"])
+        fabienn_scale = 1e-2
+        fabienne.rescale(tuple([fabienn_scale] * 3))
+        fabienne.move((-3, 0, 4))
+        fabienne.rotate((0, 1, 0))
 
-        return Scene("inside", [ground, monster, ] + boxes)
+        return Scene("inside", [house, ground, monster, fabienne] + boxes)
 
     @property
     def outside(self):
         # denis
-        # denis = Object(self.models["denis"])
-        # denis_scale = 1e-2
-        # denis.rescale(tuple([denis_scale] * 3))
-        # denis.move((0, 0, 5))
+        denis = Object(self.models["denis"])
+        denis_scale = 1e-2
+        denis.rescale(tuple([denis_scale] * 3))
+        denis.move((0, 0, 5))
 
         # trees
         a, b = -15, 15
-        trees = generate(self.models["tree"], 10, a, b)
+        trees = generate(self.models["tree"], 5, a, b)
 
-        return Scene("outside", [] + trees)
+        return Scene("outside", [denis] + trees)
 
 
 def main():
