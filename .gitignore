@@ -1,7 +1,5 @@
 *.ipynb
 .idea
 *.zip
-
-
-*.zip
+examples/
 __pycache__
