@@ -7,7 +7,7 @@ from OpenGL.GL.shaders import ShaderProgram
 from PIL import Image
 
 
-def load_texture(file_path):
+def load_texture(file_path) -> int:
     image = Image.open(file_path)
     image = image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
     img_data = np.array(list(image.getdata()), np.uint8)
@@ -52,6 +52,7 @@ def read_wavefront(file_path):
 
 class Model:
     def __init__(self, shader_program: ShaderProgram, root_dir: str):
+        self.textures = None
         self.vertices = None
         self.triangle_vertices = None
         self.texture_coords = None
@@ -89,38 +90,31 @@ class Model:
 
         return textures
 
+    def setup_buffers(self):
+        self.vao = glGenVertexArrays(1)
+        self.vbo = glGenBuffers(1)
+
+        glBindVertexArray(self.vao)
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+
+        total_vertices = np.concatenate(list(self.triangle_vertices.values()))
+        total_texture_coords = np.concatenate(list(self.textures.values()))
+
+        glBufferData(GL_ARRAY_BUFFER, total_vertices.nbytes + total_texture_coords.nbytes, None, GL_STATIC_DRAW)
+        glBufferSubData(GL_ARRAY_BUFFER, 0, total_vertices.nbytes, total_vertices)
+        glBufferSubData(GL_ARRAY_BUFFER, total_vertices.nbytes, total_texture_coords.nbytes, total_texture_coords)
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, None)
+        glEnableVertexAttribArray(0)
+
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(total_vertices.nbytes))
+        glEnableVertexAttribArray(1)
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
+        glBindVertexArray(0)
+
     def load(self, wavefront_file):
         self.vertices, self.texture_coords, self.faces = read_wavefront(wavefront_file)
-
-        triangle_vertices = []
-        for material in self.faces:
-            for face in self.faces[material]:
-                for i in range(1, len(face) - 1):
-                    for idx in [0, i, i + 1]:
-                        vertex = self.vertices[face[idx][0] - 1]
-                        texture_coord = self.texture_coords[face[idx][1] - 1]
-                        triangle_vertices.extend(vertex)
-                        triangle_vertices.extend(texture_coord)
-
-        self.triangle_vertices = np.array(triangle_vertices, dtype=np.float32)
-
-        self.vao = glGenVertexArrays(1)
-        glBindVertexArray(self.vao)
-
-        self.vbo = glGenBuffers(1)
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        glBufferData(GL_ARRAY_BUFFER, self.triangle_vertices, GL_STATIC_DRAW)
-
-        position = glGetAttribLocation(self.shader_program, "position")
-        glVertexAttribPointer(position, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), None)
-        glEnableVertexAttribArray(position)
-
-        texture_coord = glGetAttribLocation(self.shader_program, "texture_coord")
-        glVertexAttribPointer(texture_coord, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat),
-                              ctypes.c_void_p(3 * sizeof(GLfloat)))
-        glEnableVertexAttribArray(texture_coord)
-
-        self.texture_ids = []
 
         if "default" in self.faces:
             if len(self.available_textures) == 0:
@@ -133,18 +127,46 @@ class Model:
             else:
                 raise FileNotFoundError("Unnamed material with no texture with the obj file name found")
 
+        self.texture_ids = {}
+        self.textures = {}
+        self.triangle_vertices = {}
+
         for material in self.faces:
             if material not in self.available_textures:
                 continue
+
             texture_id = load_texture(self.available_textures[material])
-            self.texture_ids.append(texture_id)
-        glUniform1i(glGetUniformLocation(self.shader_program, "samplerTexture"), 0)
+            self.texture_ids[material] = texture_id
+
+            triangle_vertice = []
+            texture_vertice = []
+
+            for face in self.faces[material]:  # For each face
+                for i in range(1, len(face) - 1):  # For each vertex in face, ex: triangle will loop once, square twice
+                    for idx in [0, i, i + 1]:  # creates a triangle by dividing face polygon
+                        vertex = self.vertices[face[idx][0] - 1]
+                        texture_coord = self.texture_coords[face[idx][1] - 1]
+                        triangle_vertice.extend(vertex)
+                        texture_vertice.extend(texture_coord)
+
+            self.triangle_vertices[material] = np.array(triangle_vertice, dtype=np.float32)
+            self.textures[material] = np.array(texture_vertice, dtype=np.float32)
+
+        # vertices in self.shader_program = glGetAttribLocation(program, "position")
+        # texture_coords in self.shader_program = glGetAttribLocation(program, "texture_coord")
+        self.setup_buffers()
 
     def draw(self, matrix):
+        if not self.vao:
+            self.setup_buffers()
+
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, glm.value_ptr(matrix))
-        glBindVertexArray(self.vao)
-        glActiveTexture(GL_TEXTURE0)
-        for texture_id in self.texture_ids:
-            glBindTexture(GL_TEXTURE_2D, texture_id)
-            # glDrawArrays(GL_TRIANGLES, 0, len(self.triangle_vertices) // 5)  # this draws all faces
-            # should draw only face related to the texture
+
+        for material in self.triangle_vertices:
+            glBindTexture(GL_TEXTURE_2D, self.texture_ids[material])
+
+            glBindVertexArray(self.vao)
+            glDrawArrays(GL_TRIANGLES, 0, len(self.triangle_vertices[material]) // 3)
+            glBindVertexArray(0)
+
+        glBindTexture(GL_TEXTURE_2D, 0)
