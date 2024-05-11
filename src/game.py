@@ -24,6 +24,7 @@ class Game:
         self.shader_program: ShaderProgram | None = None
         self.engine: Engine | None = None
         self.selected_keys = set()
+        self.polygon_mode = False
 
         self.players: Dict[int, Player] = {}
 
@@ -45,6 +46,11 @@ class Game:
         self.shader_program = compileProgram(vertex_shader, fragment_shader)
         glUseProgram(self.shader_program)
         glEnable(GL_DEPTH_TEST)
+
+        glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glEnable(GL_LINE_SMOOTH)
 
         self.engine = Engine(self.shader_program)
 
@@ -100,6 +106,14 @@ class Game:
         if key == glfw.KEY_F11 and action == glfw.PRESS:
             self.window.toggle_fullscreen()
             return
+
+        if key == glfw.KEY_P and action == glfw.PRESS:
+            self.polygon_mode = not self.polygon_mode
+            if self.polygon_mode:
+                glPolygonMode(GL_FRONT_AND_BACK,GL_LINE)
+            else:
+                glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
+
 
         if action == glfw.PRESS:
             self.selected_keys.add(key)
