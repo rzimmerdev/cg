@@ -9,8 +9,9 @@ from PIL import Image
 
 def load_texture(file_path) -> int:
     image = Image.open(file_path)
-    image = image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-    img_data = np.array(list(image.getdata()), np.uint8)
+    # image = image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+    # img_data = np.array(list(image.getdata()), np.uint8)
+    img_data = image.convert("RGBA").tobytes("raw", "RGBA",0,-1)
     texture_id = glGenTextures(1)
 
     glBindTexture(GL_TEXTURE_2D, texture_id)
@@ -18,7 +19,7 @@ def load_texture(file_path) -> int:
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.width, image.height, 0, GL_RGB, GL_UNSIGNED_BYTE, img_data)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img_data)
 
     return texture_id
 
