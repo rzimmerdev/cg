@@ -43,7 +43,9 @@ textura. O programa deve permitir explorar o cenário por meio de manipulação 
 
 ## Entrega
 
-[Link do vídeo]()
+[Link do vídeo](https://youtu.be/Il1wCbGvCUo)
+
+![Thumbnail](thumbnail.png)
 
 [GitHub](https://github.com/rzimmerdev/cg)
 
