@@ -27,6 +27,7 @@ class MainScene(Scene):
 
         denis = self.engine.register_model("denis", "models/denis")
         tree = self.engine.register_model("tree", "models/tree")
+        grass = self.engine.register_model("grass", "models/grass")
 
         self.models = {
             "sky": sky,
@@ -38,6 +39,7 @@ class MainScene(Scene):
             "fabienne": fabienne,
             "denis": denis,
             "tree": tree,
+            "grass": grass,
         }
 
         self.engine.register_scene(self)
@@ -75,15 +77,15 @@ class MainScene(Scene):
         # house model
         house = Object(self.models["house"])
         ground = Object(self.models["ground"])
-        ground.rescale((10, 0.05, 10))
+        ground.rescale((10, 0.25, 7))
 
         # boxes
         a, b = -3, 3
-        boxes = generate(self.models["cube"], 2, a, b, 0.9)
+        boxes = generate(self.models["cube"], 2, a, b, 1.25)
 
         # monster
         monster = Object(self.models["monster"])
-        monster.move((0, 0, -2))
+        monster.move((0, 0.25, -2))
         monster.rescale((0.5, 0.5, 0.5))
 
         import glfw
@@ -111,7 +113,7 @@ class MainScene(Scene):
         fabienne = Object(self.models["fabienne"])
         fabienn_scale = 1e-2
         fabienne.rescale(tuple([fabienn_scale] * 3))
-        fabienne.move((-3, 0, 4))
+        fabienne.move((-3, 0.25, 4))
         fabienne.rotate((0, 1, 0))
 
         return Scene("inside", [house, ground, monster, fabienne] + boxes)
@@ -122,13 +124,18 @@ class MainScene(Scene):
         denis = Object(self.models["denis"])
         denis_scale = 1e-2
         denis.rescale(tuple([denis_scale] * 3))
-        denis.move((0, 0, 5))
+        denis.move((-1, -0.5, 5))
 
         # trees
         a, b = -15, 15
-        trees = generate(self.models["tree"], 5, a, b)
+        trees = generate(self.models["tree"], 5, a, b, -1.25)
 
-        return Scene("outside", [denis] + trees)
+        # grass
+        grass = Object(self.models["grass"])
+        grass.rescale((1.75, 0.26, 5))
+        grass.move((8, -1, 0))
+
+        return Scene("outside", [denis, grass] + trees)
 
 
 def main():
