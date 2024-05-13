@@ -6,6 +6,10 @@ from src.components import Object, Model, Scene, BoundObject, InteractiveObject
 
 
 class Physics:
+    """
+    Classe responsável por gerenciar a física do jogo.
+    No momento a física é apenas para bounding, ou seja, para limitar espaços onde objetos podem ser movidos.
+    """
     def __init__(self):
         self.objects: List[BoundObject] = []
 
@@ -20,6 +24,10 @@ class Physics:
 
 
 class Engine:
+    """
+    Classe responsável por gerenciar os objetos e cenas do jogo.
+    Tem duas funções principais: `tick` e `render`.
+    """
     def __init__(self, shader_program: ShaderProgram):
         self.objects: List[Object] = []
         self.interactive_objects: List[InteractiveObject] = []
@@ -49,6 +57,7 @@ class Engine:
         self.scenes[scene.name] = scene
 
     def tick(self, key_actions: Set[int], delta: float):
+        """Chama o método tick de todos os objetos e cenas registrados."""
         for obj in self.objects:
             obj.tick(key_actions, delta)
 
@@ -58,6 +67,7 @@ class Engine:
         self.physics.tick(self.interactive_objects, delta)
 
     def render(self):
+        """Chama o método draw de todos os objetos e cenas registrados."""
         for obj in self.objects:
             obj.draw()
         for scene in self.scenes.values():

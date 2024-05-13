@@ -7,6 +7,21 @@ import glm
 
 @dataclass
 class Camera:
+    """
+    Dataclass para a câmera do jogo.
+
+    Atributos:
+
+    - position: A posição da câmera no mundo.
+    - front: A direção para a qual a câmera está olhando.
+    - up: O vetor que aponta para cima. (0, 1, 0) é o padrão. Serve para lidar com rotações.
+    - yaw: O ângulo em torno do eixo y.
+    - pitch: O ângulo em torno do eixo x.
+    - last_x: A última posição x do cursor.
+    - last_y: A última posição y do cursor.
+    - fov: O campo de visão da câmera.
+    - first_mouse: Flag para indicar se é a primeira vez que o mouse é movido.
+    """
     def __init__(self, width, height, pos: glm.vec3 = None, front: glm.vec3 = None, up: glm.vec3 = None):
         self.position = pos if pos else glm.vec3(0.0, 0.0, 3.0)
         self.front = front if front else glm.vec3(0.0, 0.0, -1.0)

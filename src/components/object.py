@@ -30,16 +30,16 @@ class Object:
         matrix = glm.scale(matrix, self.scale)
         self.model.draw(matrix)
 
-    def rescale(self, factor: tuple):
-        self.scale *= glm.vec3(*factor)
+    def rescale(self, factor: tuple, speed=1):
+        self.scale *= glm.vec3(*factor) * speed
         return self
 
-    def move(self, position: tuple):
-        self.position += glm.vec3(*position)
+    def move(self, position: tuple, speed=1):
+        self.position += glm.vec3(*position) * speed
         return self
 
-    def rotate(self, rotation: tuple):
-        self.rotation += glm.vec3(*rotation)
+    def rotate(self, rotation: tuple, speed=1):
+        self.rotation += glm.vec3(*rotation) * speed
         return self
 
     def tick(self, *args, **kwargs):

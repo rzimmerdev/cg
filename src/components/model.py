@@ -8,10 +8,15 @@ from PIL import Image
 
 
 def load_texture(file_path) -> int:
+    """
+    Função para carregar uma textura de um arquivo de imagem.
+
+    :param file_path: Caminho do arquivo de imagem.
+    :return: ID da textura carregada na GPU. Corresponde à posição na memória e permite organizar várias texturas.
+    Sem ter que contar os vértices manualmente.
+    """
     image = Image.open(file_path)
-    # image = image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-    # img_data = np.array(list(image.getdata()), np.uint8)
-    img_data = image.convert("RGBA").tobytes("raw", "RGBA",0,-1)
+    img_data = image.convert("RGBA").tobytes("raw", "RGBA", 0, -1)
     texture_id = glGenTextures(1)
 
     glBindTexture(GL_TEXTURE_2D, texture_id)
@@ -25,6 +30,12 @@ def load_texture(file_path) -> int:
 
 
 def read_wavefront(file_path):
+    """
+    Função para ler um arquivo .obj e retornar os vértices, coordenadas de textura e faces.
+
+    :param file_path: Caminho do arquivo .obj.
+    :return: Uma tupla com os vértices, coordenadas de textura e faces.
+    """
     vertices = []
     texture_coords = []
     material = "default"
@@ -59,8 +70,8 @@ class Model:
         self.texture_coords = None
         self.faces = None
 
-        self.vao = None
-        self.vbo = None
+        self.vao = None  # Vertex Array Object
+        self.vbo = None  # Vertex Buffer Object
         self.texture_ids = None
 
         self.shader_program = shader_program
@@ -83,7 +94,7 @@ class Model:
 
     @staticmethod
     def get_textures(root_dir):
-        # for each .jpg, .png, .jpeg file in root_dir, return the file path
+        # Para cada arquivo JPG, PNG e JPEG em root_dir, retorna o caminho do arquivo
         textures = {}
         for file in os.listdir(root_dir):
             if file.endswith(('.jpg', '.png', '.jpeg')):
@@ -92,6 +103,12 @@ class Model:
         return textures
 
     def setup_buffers(self):
+        """
+        Cria e configura os buffers de vértices e coordenadas de textura.
+        Passo inicial para renderizar o modelo, carregando os dados na GPU.
+
+        :return: None
+        """
         self.vao = glGenVertexArrays(1)
         self.vbo = glGenBuffers(1)
 
@@ -115,6 +132,13 @@ class Model:
         glBindVertexArray(0)
 
     def load(self, wavefront_file):
+        """
+        Dado um arquivo Wavefront (OBJ), busca os vértices, coordenadas de textura e faces.
+        Também carrega texturas definidas no OBJ (não suporta MTL) que estejam no mesmo diretório.
+
+        :param wavefront_file: Caminho do arquivo Wavefront (OBJ).
+        :return: None
+        """
         self.vertices, self.texture_coords, self.faces = read_wavefront(wavefront_file)
 
         if "default" in self.faces:
@@ -142,9 +166,9 @@ class Model:
             triangle_vertice = []
             texture_vertice = []
 
-            for face in self.faces[material]:  # For each face
-                for i in range(1, len(face) - 1):  # For each vertex in face, ex: triangle will loop once, square twice
-                    for idx in [0, i, i + 1]:  # creates a triangle by dividing face polygon
+            for face in self.faces[material]:  # Para cada face
+                for i in range(1, len(face) - 1):  # Para cada vertice da face, cria um triângulo, ex: quadrado vira dois triângulos
+                    for idx in [0, i, i + 1]:  # Cria um triângulo
                         vertex = self.vertices[face[idx][0] - 1]
                         texture_coord = self.texture_coords[face[idx][1] - 1]
                         triangle_vertice.extend(vertex)
@@ -153,20 +177,21 @@ class Model:
             self.triangle_vertices[material] = np.array(triangle_vertice, dtype=np.float32)
             self.textures[material] = np.array(texture_vertice, dtype=np.float32)
 
-        # vertices in self.shader_program = glGetAttribLocation(program, "position")
-        # texture_coords in self.shader_program = glGetAttribLocation(program, "texture_coord")
         self.setup_buffers()
 
     def draw(self, matrix):
         if not self.vao:
             self.setup_buffers()
 
+        # Envia para o shader a matriz model dado os atributos do modelo (posição, rotação, escala)
+        # e a matriz de transformação da câmera calculada utilizando a biblioteca glm.
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, glm.value_ptr(matrix))
 
         for material in self.triangle_vertices:
             glBindTexture(GL_TEXTURE_2D, self.texture_ids[material])
 
             glBindVertexArray(self.vao)
+            # Divide por 3 pois são 3 coordenadas por triângulo
             glDrawArrays(GL_TRIANGLES, 0, len(self.triangle_vertices[material]) // 3)
             glBindVertexArray(0)
 

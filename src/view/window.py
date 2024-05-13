@@ -3,6 +3,19 @@ from OpenGL.GL import *
 
 
 class Window:
+    """
+    Encapsula a janela gráfica do jogo.
+    Comunica com a biblioteca GLFW para criar e gerenciar a janela.
+
+    Funções:
+        - create_window: Cria a janela gráfica.
+        - close_window: Fecha a janela gráfica.
+        - set_framebuffer_size_callback: Define o callback para redimensionamento da janela.
+        - set_cursor_callback: Define o callback para movimento do cursor.
+        - set_key_callback: Define o callback para pressionamento de teclas.
+        - set_input_mode: Define o modo de input do cursor.
+    """
+
     def __init__(self, width: int = 800, height: int = 600, title: str = "Game"):
         self.width = width
         self.height = height
@@ -65,10 +78,12 @@ class Window:
             monitor = glfw.get_primary_monitor()
             mode = glfw.get_video_mode(monitor)
             size = mode[0]
+
+            # Seta o tamanho da janela para o tamanho do monitor
             glfw.set_window_monitor(self.window, monitor, self._x, self._y, size.width, size.height, mode.refresh_rate)
             glfw.set_input_mode(self.window, glfw.CURSOR, glfw.CURSOR_DISABLED)
-
         else:
+            # Seta o tamanho da janela para o tamanho original
             glfw.set_window_monitor(self.window, None, 100, 100, self.width, self.height, 0)
             glfw.set_input_mode(self.window, glfw.CURSOR, glfw.CURSOR_NORMAL)
 

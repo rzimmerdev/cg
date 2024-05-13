@@ -49,17 +49,11 @@ textura. O programa deve permitir explorar o cenário por meio de manipulação 
 
 ## Execução
 
-Para rodar, use:
-```
-python main.py
-```
+Para evitar que a janela congele:
 
-Para instalar dependencias:
-
+```bash
+gsettings set org.gnome.mutter check-alive-timeout 60000
 ```
-pip install -r requirements.txt
-```
-
 
 Para criar ambiente virtual com Anaconda ou Miniconda:
 
@@ -67,6 +61,83 @@ Para criar ambiente virtual com Anaconda ou Miniconda:
 conda env create -f environment.yml
 ```
 
-```bash
-gsettings set org.gnome.mutter check-alive-timeout 60000
+Para instalar as dependencias:
+
 ```
+pip install -r requirements.txt
+```
+
+Para rodar, use (Importante: Veja a seção de controles para saber como controlar o jogo):
+Inicicialmente, o jogo tem o Mouse em modo "detached", 
+para ativar o modo "attached" entre em Tela Cheia (F11).
+```
+python main.py
+```
+
+
+## Módulos principais:
+
+### Components
+
+Contém: `Model`, `Object`, `Player`, `Scene`.
+
+A classe `Model` é responsável por carregar e renderizar um modelo 3D.
+Ela também envia para a GPU as informações necessárias para renderizar o modelo.
+
+A classe `Object` é responsável por representar uma visualização de um modelo 3D no espaço.
+Ela contém uma referência para um `Model`, calcula uma matriz de transformação com base em alguns atributos:
+- `position`: posição do objeto no espaço
+- `rotation`: rotação do objeto no espaço
+- `scale`: escala do objeto no espaço
+
+A classe `Player` é apenas um `Object` com algumas funcionalidades adicionais, como movimentação e rotação.
+Essa classe tem uma função de tick que lê do teclado e atualiza a posição e rotação do objeto.
+
+A classe `Scene` é apenas um container para objetos. Ela é responsável por renderizar todos os objetos que ela contém.
+Suas funções de manipulação de objetos alteram a raiz do objeto no mundo, 
+sendo possível adicionar objetos em relação a outros objetos por exemplo.
+
+### Engine
+
+Contém: `Engine`.
+
+A classe `Engine` é responsável por gerenciar todos objetos e cenários existentes.
+
+
+### View
+
+Contém: `Camera`, `Window`, `Shader`
+
+A classe `Camera` é um dataclass que contém informações sobre a câmera, como posição, direção e up.
+
+A classe `Window` é responsável por criar uma janela e gerenciar a renderização.
+Ela guarda informações básicas sobre a janela, como posição e tamanho, e faz as chamadas para o glfw.
+
+A classe `Shader` é responsável por compilar e linkar shaders. Lê os arquivos GSLS e compila para a GPU.
+
+
+### Game
+
+É a classe principal. Contém o game loop, e é responsável por instanciar um programa de Shader, uma Engine e um Window.
+No momento contém apenas uma camera, e a função de movimentar a câmera.
+
+
+## Controles
+
+Jogo:
+- P: Alternar entre visualização de textura e malha poligonal
+- F11: Alternar entre fullscreen e janela
+- ESC: Sair do programa
+
+
+Jogador + Camera:
+- W, A, S, D: Movimentar a câmera
+- Mouse: Rotacionar a câmera
+- Shift, Espaço: Subir e descer a câmera
+
+
+Monstro:
+- Setas: Movimentar o monstro
+- Right Ctrl, Right Shift: Rotacionar o monstro no eixo Y
+- Right Bracket, Left Bracket: Rotacionar o monstro no eixo X
+- \- e +: Escalar o monstro
