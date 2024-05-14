@@ -57,6 +57,8 @@ Para evitar que a janela congele:
 gsettings set org.gnome.mutter check-alive-timeout 60000
 ```
 
+Caso não tenha instalado o LFS do Git instalado, e tenha clonado o projeto, ou baixe o projeto com os arquivos descompactados, ou instale o [LFS](https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage)
+
 Para criar ambiente virtual com Anaconda ou Miniconda:
 
 ```
