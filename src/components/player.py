@@ -7,8 +7,6 @@ from .object import InteractiveObject
 
 
 class Player(InteractiveObject):
-    pass
-
     def apply_movement(self, key_actions: Set[int], front, up, delta: float):
         if glfw.KEY_W in key_actions:
             self.position += self.speed * front * delta

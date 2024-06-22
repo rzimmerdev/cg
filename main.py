@@ -4,9 +4,84 @@ from typing import Dict, Set
 from src.game import Game
 from src.components import Object, Scene, Model, Player, SphereBound, NormalBound
 
+import glfw
+import glm
 
-def generate(model, n, a, b, y=0.5):
-    return [Object(model).move((random.uniform(a, b), y, random.uniform(a, b))) for _ in range(n)]
+
+class Monster(Object):
+    """
+    Classe que representa um monstro no jogo.
+    Herda de Object e adiciona métodos específicos para movimentação e interação, com o lado direito do teclado.
+
+    Para movimentar o monstro, use:
+
+    - Setas direcionais para frente, trás, esquerda e direita para movimentação no plano xz.
+
+    - Teclas Right Control e Shift para rotação no eixo y.
+
+    - Teclas `[` e `]` para rotação no eixo x.
+
+    - Teclas `+` e `-` para escalar o monstro.
+    """
+    def __init__(self, model: Model):
+        super().__init__(model)
+        self.rotate_speed = 1e-2
+        self.scale_speed = 1.01
+
+        self.tick_methods.append(self.arrow_movement)
+
+    def arrow_movement(self, key_actions: Set[int], delta: float):
+        up = glm.vec3(0.0, 1.0, 0.0)
+        front = glm.vec3(0.0, 0.0, 1.0)
+
+        if glfw.KEY_UP in key_actions:
+            self.position += self.speed * front * delta
+
+        if glfw.KEY_DOWN in key_actions:
+            self.position -= self.speed * front * delta
+
+        if glfw.KEY_LEFT in key_actions:
+            self.position -= glm.normalize(glm.cross(front, up)) * self.speed * delta
+
+        if glfw.KEY_RIGHT in key_actions:
+            self.position += glm.normalize(glm.cross(front, up)) * self.speed * delta
+
+        # Rotaciona o monstro no eixo y
+        if glfw.KEY_RIGHT_CONTROL in key_actions:
+            self.rotate((0, 1, 0), self.rotate_speed)
+
+        if glfw.KEY_RIGHT_SHIFT in key_actions:
+            self.rotate((0, -1, 0), self.rotate_speed)
+
+        # Rotaciona o monstro no eixo x
+        if glfw.KEY_LEFT_BRACKET in key_actions:
+            self.rotate((1, 0, 0), self.rotate_speed)
+
+        if glfw.KEY_RIGHT_BRACKET in key_actions:
+            self.rotate((-1, 0, 0), self.rotate_speed)
+
+        # Escala o monstro
+        if glfw.KEY_EQUAL in key_actions:
+            self.rescale((1, 1, 1), self.scale_speed)
+
+        if glfw.KEY_MINUS in key_actions:
+            self.rescale((1, 1, 1), 1 / self.scale_speed)
+
+
+def generate(model, n, a, b, y=0.5, radius=1, distance=1):
+    objs = [Object(model).move((random.uniform(a, b), y, random.uniform(a, b))) for _ in range(n)]
+    # se os objetos estiverem muito próximos, distanciar
+    for i in range(n):
+        for j in range(i + 1, n):
+            while glm.distance(objs[i].position, objs[j].position) < distance:
+                objs[j].move((random.uniform(a, b), 0, random.uniform(a, b)))
+
+    # make objects at least radius away from center
+    # define uma distância mínima do raio do centro
+    for obj in objs:
+        while glm.distance(obj.position, glm.vec3(0, 0, 0)) < radius:
+            obj.move((random.uniform(a, b), 0, random.uniform(a, b)))
+    return objs
 
 
 class MainScene(Scene):
@@ -24,10 +99,12 @@ class MainScene(Scene):
         cube = self.engine.register_model("cube", "models/caixa")
         monster = self.engine.register_model("monster", "models/monster")
         fabienne = self.engine.register_model("fabienne", "models/fabienne")
+        stool = self.engine.register_model("stool", "models/stool")
 
         denis = self.engine.register_model("denis", "models/denis")
         tree = self.engine.register_model("tree", "models/tree")
         grass = self.engine.register_model("grass", "models/grass")
+        horse = self.engine.register_model("horse", "models/horse")
 
         self.models = {
             "sky": sky,
@@ -40,6 +117,8 @@ class MainScene(Scene):
             "denis": denis,
             "tree": tree,
             "grass": grass,
+            "horse": horse,
+            "stool": stool,
         }
 
         self.engine.register_scene(self)
@@ -57,6 +136,9 @@ class MainScene(Scene):
 
     @property
     def environment(self):
+        """
+        Ambiente de fundo, contém o céu e o chão fixo.
+        """
         sky = Object(self.models["sky"])
         sky.rescale((1, 1, 1))
         terrain = Object(self.models["terrain"])
@@ -74,6 +156,9 @@ class MainScene(Scene):
 
     @property
     def inside(self):
+        """
+        Ambiente interno, contém uma casa, caixas, um monstro, uma pessoa e um banco.
+        """
         # house model
         house = Object(self.models["house"])
         ground = Object(self.models["ground"])
@@ -81,33 +166,15 @@ class MainScene(Scene):
 
         # boxes
         a, b = -3, 3
-        boxes = generate(self.models["cube"], 2, a, b, 1.25)
+        boxes = generate(self.models["cube"], 2, a, b, 0.8)
+
+        for box in boxes:
+            box.rescale((0.6, 0.6, 0.6))
 
         # monster
-        monster = Object(self.models["monster"])
+        monster = Monster(self.models["monster"])
         monster.move((0, 0.25, -2))
         monster.rescale((0.5, 0.5, 0.5))
-
-        import glfw
-        import glm
-
-        def arrow_movement(key_actions: Set[int], delta: float):
-            up = glm.vec3(0.0, 1.0, 0.0)
-            front = glm.vec3(0.0, 0.0, 1.0)
-
-            if glfw.KEY_UP in key_actions:
-                monster.position += monster.speed * front * delta
-
-            if glfw.KEY_DOWN in key_actions:
-                monster.position -= monster.speed * front * delta
-
-            if glfw.KEY_LEFT in key_actions:
-                monster.position -= glm.normalize(glm.cross(front, up)) * monster.speed * delta
-
-            if glfw.KEY_RIGHT in key_actions:
-                monster.position += glm.normalize(glm.cross(front, up)) * monster.speed * delta
-
-        monster.tick_methods.append(arrow_movement)
 
         # fabienne
         fabienne = Object(self.models["fabienne"])
@@ -116,10 +183,19 @@ class MainScene(Scene):
         fabienne.move((-3, 0.25, 4))
         fabienne.rotate((0, 1, 0))
 
-        return Scene("inside", [house, ground, monster, fabienne] + boxes)
+        # stool
+        stool = Object(self.models["stool"])
+        stool.rescale((0.5, 0.5, 0.5))
+        stool.move((4, 0, 3))
+
+        return Scene("inside", [house, ground, monster, fabienne] + boxes + [stool])
 
     @property
     def outside(self):
+        """
+        Ambiente externo, contém, árvores, uma pessoa e um cavalo.
+        """
+
         # denis
         denis = Object(self.models["denis"])
         denis_scale = 1e-2
@@ -127,15 +203,18 @@ class MainScene(Scene):
         denis.move((-1, -0.5, 5))
 
         # trees
-        a, b = -15, 15
-        trees = generate(self.models["tree"], 5, a, b, -1.25)
+        a, b = -10, 10
+        trees = generate(self.models["tree"], 5, a, b, -1.25, 10)
 
         # grass
         grass = Object(self.models["grass"])
-        grass.rescale((1.75, 0.26, 5))
-        grass.move((8, -1, 0))
+        grass.rescale((1.75, 0.01, 5))
+        grass.move((8, -0.75, 0))
 
-        return Scene("outside", [denis, grass] + trees)
+        horse = Object(self.models["horse"])
+        horse.move((0, 0, 10))
+
+        return Scene("outside", [denis, grass] + trees + [horse])
 
 
 def main():

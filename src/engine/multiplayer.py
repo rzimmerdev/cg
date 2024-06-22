@@ -5,6 +5,11 @@ import websockets
 import websocket
 import threading
 
+"""
+A classe multiplayer ainda não está funcional. 
+A ideia é que o servidor possa receber mensagens de vários clientes eventualmente.
+"""
+
 
 class Server:
     def __init__(self):
