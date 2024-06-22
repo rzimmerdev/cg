@@ -6,13 +6,14 @@ uniform sampler2D samplerTexture;
 
 uniform vec3 cameraPos;
 
-uniform vec3 ambientColor; // k_a
-uniform vec3 ambientLightIntensity; // I_a
+uniform float ambientColor; // k_a
+uniform vec3 ambientLight; // I_a
 
+uniform float num_lights;
 uniform vec3 lightPos[MAX_LIGHTS]; // Array of light positions
 uniform vec3 lightColor[MAX_LIGHTS]; // Array of light colors
-uniform vec3 diffuseColor; // k_d
-uniform vec3 specularColor; // k_s
+uniform float diffuseColor; // k_d
+uniform float specularColor; // k_s
 uniform float shininess; // n
 
 varying vec3 fragNormal; // Pass this from the vertex shader
@@ -25,12 +26,12 @@ void main() {
     vec3 normal = normalize(fragNormal); // Use the varying normal from the vertex shader
 
     // Ambient lighting
-    vec3 ambient = ambientColor * ambientLightIntensity; // k_a * I_a
+    vec3 ambient = (ambientColor * ambientLight); // k_a * I_a
 
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
 
-    for (int i = 0; i < MAX_LIGHTS; ++i) {
+    for (int i = 0; i < 0; ++i) {
         vec3 lightDir = normalize(lightPos[i] - fragPos);
         vec3 reflectDir = reflect(-lightDir, normal);
 
@@ -45,11 +46,11 @@ void main() {
         // Distance attenuation
         float distance = length(lightPos[i] - fragPos);
         float attenuation = 1.0 / (distance * distance);
-        
+
         diffuse *= attenuation;
         specular *= attenuation;
     }
 
-    vec3 resultColor = ambient + diffuse + specular;
-    gl_FragColor = vec4(resultColor * textureColor.rgb, textureColor.a);
+    vec3 resultColor = clamp(ambient + diffuse + specular, 0.0, 1.0); // Add the texture color
+    gl_FragColor = textureColor * vec4(resultColor, 1.0);
 }

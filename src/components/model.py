@@ -1,4 +1,5 @@
 import os
+from typing import List, Tuple
 
 from OpenGL.GL import *
 import glm
@@ -73,6 +74,11 @@ class Model:
         self.vao = None  # Vertex Array Object
         self.vbo = None  # Vertex Buffer Object
         self.texture_ids = None
+
+        self.k_a = 0.1
+        self.k_d = 0.7
+        self.k_s = 0.2
+        self.a_n = 1
 
         self.shader_program = shader_program
         if not isinstance(shader_program, ShaderProgram):
@@ -179,19 +185,41 @@ class Model:
 
         self.setup_buffers()
 
-    def draw(self, matrix):
+    def draw(self, matrix, light_sources: List[Tuple[glm.vec3, glm.vec3]] = None, ambient_light: glm.vec3 = None):
         if not self.vao:
             self.setup_buffers()
 
-        # Envia para o shader a matriz model dado os atributos do modelo (posição, rotação, escala)
-        # e a matriz de transformação da câmera calculada utilizando a biblioteca glm.
+        if ambient_light is None:
+            ambient_light = glm.vec3(1.0, 1.0, 1.0)
+            glUniform3fv(glGetUniformLocation(self.shader_program, "ambientLight"), 1, glm.value_ptr(ambient_light))
+
+        # Send the model matrix to the shader
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, glm.value_ptr(matrix))
+
+        # set k_a, k_d, k_s
+        glUniform1f(glGetUniformLocation(self.shader_program, "ambientColor"), self.k_a)
+        glUniform1f(glGetUniformLocation(self.shader_program, "diffuseColor"), self.k_d)
+        glUniform1f(glGetUniformLocation(self.shader_program, "specularColor"), self.k_s)
+
+        glUniform1f(glGetUniformLocation(self.shader_program, "shininess"), self.a_n)
+
+        if light_sources:
+            # Limit the number of lights to MAX_LIGHTS
+            light_sources = light_sources[:10]
+
+            # Send light positions and colors to the shader
+            light_positions = [light[1] for light in light_sources]
+            light_colors = [light[0] for light in light_sources]
+
+            for i, (position, color) in enumerate(zip(light_positions, light_colors)):
+                glUniform3fv(glGetUniformLocation(self.shader_program, f"lightPos[{i}]"), 1, glm.value_ptr(position))
+                glUniform3fv(glGetUniformLocation(self.shader_program, f"lightColor[{i}]"), 1, glm.value_ptr(color))
 
         for material in self.triangle_vertices:
             glBindTexture(GL_TEXTURE_2D, self.texture_ids[material])
 
             glBindVertexArray(self.vao)
-            # Divide por 3 pois são 3 coordenadas por triângulo
+            # Divide by 3 because there are 3 coordinates per triangle
             glDrawArrays(GL_TRIANGLES, 0, len(self.triangle_vertices[material]) // 3)
             glBindVertexArray(0)
 
