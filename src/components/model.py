@@ -41,6 +41,7 @@ def read_wavefront(file_path):
     texture_coords = []
     material = "default"
     faces = {material: []}
+    normals = {material: []}
 
     with open(file_path, 'r') as file:
         for line in file:
@@ -56,11 +57,13 @@ def read_wavefront(file_path):
                 face = line.strip().split()[1:]
                 face = [list(map(int, f.split('/'))) for f in face]
                 faces[material].append(face)
+            elif line.startswith('vn '):
+                normals[material].append(list(map(float, line.strip().split()[1:4])))
 
     if not faces["default"]:
         faces.pop("default")
 
-    return vertices, texture_coords, faces
+    return vertices, texture_coords, faces, normals
 
 
 class Model:
@@ -68,8 +71,10 @@ class Model:
         self.textures = None
         self.vertices = None
         self.triangle_vertices = None
+        self.triangle_normals = None
         self.texture_coords = None
         self.faces = None
+        self.normals = None
 
         self.vao = None  # Vertex Array Object
         self.vbo = None  # Vertex Buffer Object
@@ -145,7 +150,7 @@ class Model:
         :param wavefront_file: Caminho do arquivo Wavefront (OBJ).
         :return: None
         """
-        self.vertices, self.texture_coords, self.faces = read_wavefront(wavefront_file)
+        self.vertices, self.texture_coords, self.faces, self.normals = read_wavefront(wavefront_file)
 
         if "default" in self.faces:
             if len(self.available_textures) == 0:
@@ -161,6 +166,7 @@ class Model:
         self.texture_ids = {}
         self.textures = {}
         self.triangle_vertices = {}
+        self.triangle_normals = {}
 
         for material in self.faces:
             if material not in self.available_textures:
@@ -170,6 +176,7 @@ class Model:
             self.texture_ids[material] = texture_id
 
             triangle_vertice = []
+            triangle_normals = []
             texture_vertice = []
 
             for face in self.faces[material]:  # Para cada face
@@ -179,9 +186,14 @@ class Model:
                         texture_coord = self.texture_coords[face[idx][1] - 1]
                         triangle_vertice.extend(vertex)
                         texture_vertice.extend(texture_coord)
+                        # copia a normal para cada face nova criada
+                        if self.normals:
+                            pass
 
+            # just copy normals to equate number of new faces
             self.triangle_vertices[material] = np.array(triangle_vertice, dtype=np.float32)
             self.textures[material] = np.array(texture_vertice, dtype=np.float32)
+            self.triangle_normals[material] = np.array(triangle_normals, dtype=np.float32)
 
         self.setup_buffers()
 
@@ -218,6 +230,7 @@ class Model:
         for material in self.triangle_vertices:
             glBindTexture(GL_TEXTURE_2D, self.texture_ids[material])
 
+            # bind normal to
             glBindVertexArray(self.vao)
             # Divide by 3 because there are 3 coordinates per triangle
             glDrawArrays(GL_TRIANGLES, 0, len(self.triangle_vertices[material]) // 3)
