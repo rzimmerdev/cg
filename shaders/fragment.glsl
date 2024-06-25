@@ -16,7 +16,7 @@ uniform float diffuseColor; // k_d
 uniform float specularColor; // k_s
 uniform float shininess; // n
 
-varying vec3 fragNormal; // Pass this from the vertex shader
+uniform vec3 fragNormal; // Pass this from the vertex shader
 
 void main() {
     vec4 textureColor = texture2D(samplerTexture, out_texture);
