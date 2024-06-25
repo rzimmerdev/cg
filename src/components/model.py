@@ -209,7 +209,7 @@ class Model:
 
         self.setup_buffers()
 
-    def draw(self, matrix, light_sources: List = None):
+    def draw(self, matrix, light_sources: List = None, ambient_light=None):
         if not self.vao:
             self.setup_buffers()
 
@@ -222,16 +222,14 @@ class Model:
         glUniform1f(glGetUniformLocation(self.shader_program, "specularCoefficient"), self.specular_coefficient)
 
         glUniform1f(glGetUniformLocation(self.shader_program, "shininess"), self.shininess)
+        num_lights = len(light_sources) if light_sources else 0
+        color = glm.vec3(0.0, 0.0, 0.0)
 
-        num_lights = int(len(light_sources) - 1 if light_sources else 0)
-        glUniform1i(glGetUniformLocation(self.shader_program, "numLights"), num_lights)
+        if ambient_light:
+            color = ambient_light.luminance
 
-        ambient_light = glm.vec3(0.0, 0.0, 0.0) if not light_sources else light_sources[0].luminance
-
-        glUniform3fv(glGetUniformLocation(self.shader_program, "ambientLight"), 1, glm.value_ptr(ambient_light))
-
-        if num_lights > 0:
-            light_sources = light_sources[1:10]
+        if light_sources:
+            light_sources = light_sources[0:10]
 
             # Send light positions and colors to the shader
             light_positions = [light.position for light in light_sources]
@@ -240,6 +238,9 @@ class Model:
             for i, (position, color) in enumerate(zip(light_positions, light_colors)):
                 glUniform3fv(glGetUniformLocation(self.shader_program, f"lightPos[{i}]"), 1, glm.value_ptr(position))
                 glUniform3fv(glGetUniformLocation(self.shader_program, f"lightColor[{i}]"), 1, glm.value_ptr(color))
+
+        glUniform3fv(glGetUniformLocation(self.shader_program, "ambientLight"), 1, glm.value_ptr(color))
+        glUniform1i(glGetUniformLocation(self.shader_program, "numLights"), num_lights)
 
         for material in self.triangle_vertices:
             glBindTexture(GL_TEXTURE_2D, self.texture_ids[material])

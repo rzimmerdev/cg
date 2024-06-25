@@ -18,6 +18,8 @@ class Physics:
 
     def tick(self, interactive_objects: List[InteractiveObject], delta):
         for obj in self.objects:
+            if not isinstance(obj, BoundObject):
+                continue
             for interactive_object in interactive_objects:
                 if not obj.contains(interactive_object.position):
                     interactive_object.interact(obj, delta)
@@ -37,6 +39,7 @@ class Engine:
         self.scenes: Dict[str, Scene] = {}
 
         self.physics = Physics()
+        self.day = None
 
     def register_model(self, name: str, wavefront_path: str):
         model = Model(self.shader_program, wavefront_path)
@@ -56,13 +59,13 @@ class Engine:
     def register_scene(self, scene: Scene):
         self.scenes[scene.name] = scene
 
-    def tick(self, key_actions: Set[int], delta: float):
+    def tick(self, key_actions: Set[int], delta: float, player=None):
         """Chama o método tick de todos os objetos e cenas registrados."""
-        for obj in self.objects:
+        for obj in self.objects + self.interactive_objects:
             obj.tick(key_actions, delta)
 
         for scene in self.scenes.values():
-            scene.tick(key_actions, delta)
+            scene.tick(key_actions, delta, player)
 
         self.physics.tick(self.interactive_objects, delta)
 

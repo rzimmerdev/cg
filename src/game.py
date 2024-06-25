@@ -132,7 +132,7 @@ class Game:
             # update cameraPos
             self.camera.update(self.shader_program)
 
-        self.engine.tick(self.selected_keys, delta)
+        self.engine.tick(self.selected_keys, delta, self.current_player)
 
     def key_callback(self, window, key, scancode, action, mods):
         """

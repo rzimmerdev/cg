@@ -19,7 +19,7 @@ class Object:
     def set_model(self, model):
         self.model = model
 
-    def draw(self, lights: list = None):
+    def draw(self, lights: list = None, ambient_light=None):
         if not self.model:
             return
         matrix = glm.mat4(1.0)
@@ -28,7 +28,7 @@ class Object:
         matrix = glm.rotate(matrix, self.rotation.y, glm.vec3(0.0, 1.0, 0.0))
         matrix = glm.rotate(matrix, self.rotation.z, glm.vec3(0.0, 0.0, 1.0))
         matrix = glm.scale(matrix, self.scale)
-        self.model.draw(matrix, lights)
+        self.model.draw(matrix, lights, ambient_light)
 
     def rescale(self, factor: tuple, speed=1):
         self.scale *= glm.vec3(*factor) * speed
@@ -96,9 +96,9 @@ class NormalBound(BoundObject):  # 2D plane with no bounds
 
 
 class InteractiveObject(Object):
-    def tick(self, key_actions):
+    def tick(self, key_actions, delta=0):
         for method in self.tick_methods:
-            method(key_actions)
+            method(key_actions, delta)
         return self
 
     def interact(self, obj: Union["InteractiveObject", BoundObject], delta):
@@ -114,5 +114,9 @@ class LightSource(InteractiveObject):
         else:
             self.luminance = glm.vec3(1.0, 1.0, 1.0) if luminance is None else glm.vec3(*luminance)
 
-    def draw(self, lights: list = None):
+    def draw(self, lights: list = None, ambient_light=None):
         super().draw(None)
+
+    def update_luminance(self, eps: float, min_luminance=1.0, max_luminance=5.0):
+        self.luminance = glm.clamp(self.luminance + eps, min_luminance, max_luminance)
+        return self

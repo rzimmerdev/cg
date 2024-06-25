@@ -38,14 +38,14 @@ class Scene:
     def add_scene(self, scene: "Scene"):
         self.sub_scenes[scene.name] = scene
 
-    def draw(self, lights: list = None):
+    def draw(self, lights: list = None, ambient_light=None):
         lights = lights + self.lights if lights else self.lights
         for light in self.lights:
             light.draw()
         for obj in self.objects:
-            obj.draw(lights)
+            obj.draw(lights, ambient_light)
         for scene in self.sub_scenes.values():
-            scene.draw(lights)
+            scene.draw(lights, ambient_light)
 
     def move(self, position: tuple):
         self.position += glm.vec3(*position)
@@ -91,4 +91,6 @@ class Scene:
             obj.tick(*args, **kwargs)
         for scene in self.sub_scenes.values():
             scene.tick(*args, **kwargs)
+        for light in self.lights:
+            light.tick(*args, **kwargs)
         return self
