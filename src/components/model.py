@@ -129,6 +129,8 @@ class Model:
         total_vertices = np.concatenate(list(self.triangle_vertices.values()))
         total_texture_coords = np.concatenate(list(self.textures.values()))
 
+        # fazer passagem para o buffer das normais
+
         glBufferData(GL_ARRAY_BUFFER, total_vertices.nbytes + total_texture_coords.nbytes, None, GL_STATIC_DRAW)
         glBufferSubData(GL_ARRAY_BUFFER, 0, total_vertices.nbytes, total_vertices)
         glBufferSubData(GL_ARRAY_BUFFER, total_vertices.nbytes, total_texture_coords.nbytes, total_texture_coords)
@@ -187,8 +189,10 @@ class Model:
                         triangle_vertice.extend(vertex)
                         texture_vertice.extend(texture_coord)
                         # copia a normal para cada face nova criada
-                        if self.normals:
-                            pass
+                        if self.normals: # fazer alguma coisa com a normal aqui
+                            normals = self.normals[face[idx][2] - 1]
+                            triangle_normals.extend(normals)
+
 
             # just copy normals to equate number of new faces
             self.triangle_vertices[material] = np.array(triangle_vertice, dtype=np.float32)
