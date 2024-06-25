@@ -1,6 +1,5 @@
 import math
 import random
-import time
 from typing import Dict, Set
 
 from src.game import Game
@@ -102,16 +101,6 @@ class Saucer(LightSource):
         self.height = height
         self.position = glm.vec3(0, height, radius)
         self.on = True
-        self.dt = time.time()
-
-    def toggle(self):
-        if time.time() - self.dt > 0.5:
-            self.on = not self.on
-            self.dt = time.time()
-        if self.on:
-            self.luminance = glm.vec3(2, 2, 2)
-        else:
-            self.luminance = glm.vec3(0, 0, 0)
 
     def sauce(self, key_actions: Set[int], delta: float):
         """Keep rotating around origin at height 10"""
@@ -124,7 +113,9 @@ class Saucer(LightSource):
 
         # if key = H, turn off
         if glfw.KEY_H in key_actions:
-            self.toggle()
+            self.luminance = glm.clamp(self.luminance - delta, 0.0, 5.0)
+        if glfw.KEY_J in key_actions:
+            self.luminance = glm.clamp(self.luminance + delta, 0.0, 5.0)
 
         x = self.radius * math.cos(self.theta)
         z = self.radius * math.sin(self.theta)
@@ -313,7 +304,7 @@ class MainScene(Scene):
 
         # trees
         a, b = -10, 10
-        trees = generate(self.models["tree"], 5, a, b, -1.25, 10)
+        trees = generate(self.models["tree"], 10, a, b, -1.25, 10)
 
         # grass
         grass = Object(self.models["grass"])
@@ -323,7 +314,7 @@ class MainScene(Scene):
         horse = Object(self.models["horse"])
         horse.move((0, 0, 10))
 
-        saucer = Saucer(self.models["lantern"], luminance=(2, 2, 2))
+        saucer = Saucer(self.models["lantern"], luminance=(2, 2, 2), height=6)
         saucer.rescale((0.1, 0.1, 0.1))
 
         return Scene("outside", [terrain, house, denis, grass, horse] + trees, [saucer])
@@ -344,8 +335,8 @@ class MainScene(Scene):
         if self.current_scene == "inside":
             self.sub_scenes["inside"].draw([], ambient_light)
         else:
-            self.sub_scenes["outside"].draw([], ambient_light)
             self.sub_scenes["environment"].draw([], ambient_light)
+            self.sub_scenes["outside"].draw([], ambient_light)
 
 
 def main():

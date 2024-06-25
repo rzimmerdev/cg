@@ -15,7 +15,7 @@ Construir um cenário 3D a partir de modelos/malhas pré-existentes e com aplica
 textura. O programa deve permitir explorar o cenário por meio de manipulação da câmera
 (Matrizes Model x View x Projection).
 
-## Requisitos
+## Requisitos I
 
 1. O cenário deve conter um ambiente interno e externo.
 2. O ambiente interno pode ser obtido por meio de uma habitação, como casa, prédio,
@@ -41,11 +41,31 @@ textura. O programa deve permitir explorar o cenário por meio de manipulação 
  qualquer momento, pressionando a tecla P. Ao pressionar novamente a tecla P,
  voltar ao modo textura.
 
-## Entrega
+## Requisitos II
+
+1. Um dos objetos externos deve ter animação, com alguma translação envolvida. 
+Caso o Trabalho 1 já contenha tal objeto, então ele pode ser reutilizado. 
+Esse objeto com animação será uma fonte de luz.
+2. Um objeto interno (a uma casa ou modelo similar) representará uma fonte de luz estática.
+3. A fonte de luz do ambiente interno só deve afetar os objetos dentro do ambiente interno.
+4. A fonte de luz do ambiente externo só deve afetar os objetos do ambiente externo.
+5. Determine alguns eventos de teclado para incrementar ou decretar a luz ambiente.
+6. Determine alguns eventos de teclado para aumentar a reflexão difusa das fontes de luz.
+7. Determine alguns eventos de teclado para aumentar a reflexão especular das fontes de luz.
+8. Todo objeto do seu cenário deve ter seus próprios parâmetros de iluminação difusa e especular.
+9. Bônus: sua fonte de luz pode aumentar ou reduzir a iluminação conforme a distância da fonte de luz em relação aos objetos.
+
+## Entrega I
 
 [Link do vídeo](https://youtu.be/Il1wCbGvCUo)
 
-![Thumbnail](thumbnail.png)
+![Thumbnail](thumbnail1.png)
+
+## Entrega II
+
+https://www.youtube.com/watch?v=L6tP9GwjHJs
+
+![Thumbnail](thumbnail2.png)
 
 [GitHub](https://github.com/rzimmerdev/cg)
 
@@ -101,6 +121,8 @@ A classe `Scene` é apenas um container para objetos. Ela é responsável por re
 Suas funções de manipulação de objetos alteram a raiz do objeto no mundo, 
 sendo possível adicionar objetos em relação a outros objetos por exemplo.
 
+Além disso, dentro do módulo de `Object`, temos a classe `Light`, que é responsável por representar uma fonte de luz.
+
 ### Engine
 
 Contém: `Engine`.
@@ -140,8 +162,17 @@ Jogador + Camera:
 - Shift, Espaço: Subir e descer a câmera
 
 
-Monstro:
-- Setas: Movimentar o monstro
-- Right Ctrl, Right Shift: Rotacionar o monstro no eixo Y
-- Right Bracket, Left Bracket: Rotacionar o monstro no eixo X
+Fabienne:
+- Setas: Movimentar o objeto
+- Right Ctrl, Right Shift: Rotacionar o objeto no eixo Y
+- Right Bracket, Left Bracket: Rotacionar o objeto no eixo X
 - \- e +: Escalar o monstro
+- 1 e 2: Altera o coeficiente de reflexão difusa
+- 3 e 4: Altera o coeficiente de reflexão especular
+- 5 e 6: Altera o expoente de reflexão especular
+- 0 e 9: Altera o coeficiente de reflexão ambiente
+
+Luzes:
+- C e V: Altera a intensidade da luz ambiente externa
+- F e G: Animam o objeto de luz externo (ovni)
+- H e J: Alteram a intensidade da fonte de luz externa
