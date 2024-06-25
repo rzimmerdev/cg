@@ -80,10 +80,10 @@ class Model:
         self.vbo = None  # Vertex Buffer Object
         self.texture_ids = None
 
-        self.k_a = 0.1
-        self.k_d = 0.7
-        self.k_s = 0.2
-        self.a_n = 1
+        self.ambient_coefficient = 0.1
+        self.diffuse_coefficient = 0.7
+        self.specular_coefficient = 0.2
+        self.shininess = 1
 
         self.shader_program = shader_program
         if not isinstance(shader_program, ShaderProgram):
@@ -217,11 +217,11 @@ class Model:
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, glm.value_ptr(matrix))
 
         # set k_a, k_d, k_s
-        glUniform1f(glGetUniformLocation(self.shader_program, "ambientColor"), self.k_a)
-        glUniform1f(glGetUniformLocation(self.shader_program, "diffuseColor"), self.k_d)
-        glUniform1f(glGetUniformLocation(self.shader_program, "specularColor"), self.k_s)
+        glUniform1f(glGetUniformLocation(self.shader_program, "ambientCoefficient"), self.ambient_coefficient)
+        glUniform1f(glGetUniformLocation(self.shader_program, "diffuseCoefficient"), self.diffuse_coefficient)
+        glUniform1f(glGetUniformLocation(self.shader_program, "specularCoefficient"), self.specular_coefficient)
 
-        glUniform1f(glGetUniformLocation(self.shader_program, "shininess"), self.a_n)
+        glUniform1f(glGetUniformLocation(self.shader_program, "shininess"), self.shininess)
 
         num_lights = int(len(light_sources) - 1 if light_sources else 0)
         glUniform1i(glGetUniformLocation(self.shader_program, "numLights"), num_lights)

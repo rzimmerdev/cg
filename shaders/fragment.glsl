@@ -5,14 +5,14 @@ uniform sampler2D samplerTexture;
 
 uniform vec3 cameraPos;
 
-uniform float ambientColor; // k_a
+uniform float ambientCoefficient; // k_a
 uniform vec3 ambientLight; // I_a
 
 uniform int numLights;
 uniform vec3 lightPos[MAX_LIGHTS]; // Array of light positions
 uniform vec3 lightColor[MAX_LIGHTS]; // Array of light colors
-uniform float diffuseColor; // k_d
-uniform float specularColor; // k_s
+uniform float diffuseCoefficient; // k_d
+uniform float specularCoefficient; // k_s
 uniform float shininess; // n
 
 varying vec3 out_normal;
@@ -25,7 +25,7 @@ void main() {
     vec3 normal = normalize(out_normal);
 
     // Ambient lighting
-    vec3 ambient = (ambientColor * ambientLight); // k_a * I_a
+    vec3 ambient = (ambientCoefficient * ambientLight); // k_a * I_a
 
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
@@ -36,11 +36,11 @@ void main() {
 
         // Diffuse lighting
         float diff = max(dot(normal, lightDir), 0.0);
-        diffuse += diffuseColor * diff * lightColor[i]; // k_d * (N * L) * I_d
+        diffuse += diffuseCoefficient * diff * lightColor[i]; // k_d * (N * L) * I_d
 
         // Specular lighting
         float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
-        specular += specularColor * spec * lightColor[i]; // k_s * (V * R)^n * I_s
+        specular += specularCoefficient * spec * lightColor[i]; // k_s * (V * R)^n * I_s
 
         // Distance attenuation
         float distance = length(lightPos[i] - out_position);

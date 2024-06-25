@@ -95,11 +95,17 @@ class MainScene(Scene):
         terrain = self.engine.register_model("terrain", "models/terrain") # vn
 
         ground = self.engine.register_model("ground", "models/ground")
+        ground.shininess = 16
         house = self.engine.register_model("house", "models/house")
+        house.shininess = 1
+        house.diffuse_coefficient = 0.9
+        house.specular_coefficient = 0.1
         cube = self.engine.register_model("cube", "models/caixa")
         monster = self.engine.register_model("monster", "models/monster")  # vn
         fabienne = self.engine.register_model("fabienne", "models/fabienne")
         stool = self.engine.register_model("stool", "models/stool")
+        stool.shininess = 128
+        stool.specular_coefficient = 0.5
         lantern = self.engine.register_model("lantern", "models/lantern")
 
         denis = self.engine.register_model("denis", "models/denis")
@@ -166,12 +172,12 @@ class MainScene(Scene):
         # house model
         house = Object(self.models["house"])
         ground1 = Object(self.models["ground"])
-        ground1.rescale((6, 0.25, 4))
-        # ground1.move((0, 0, 1))
+        ground1.rescale((5.65, 0.05, 4.4))
+        ground1.move((0.2, 0.2, 0.3))
 
         ground2 = Object(self.models["ground"])
-        ground2.rescale((1, 0.25, 1))
-        ground2.move((10, 1, 10))
+        ground2.rescale((1.7, 0.05, 1.1))
+        ground2.move((-3.7, 0.2, 5.65))
 
         # boxes
         a, b = -3, 3
@@ -199,8 +205,8 @@ class MainScene(Scene):
 
         ambience = LightSource(luminance=(1, 1, 1))
 
-        lantern = LightSource(self.models['lantern'], luminance=(1, 1, 1))
-        lantern.move((0, 1, 0))
+        lantern = LightSource(self.models['lantern'], luminance=(2, 2, 2))
+        lantern.move((0, 3, 0))
         lantern.rescale((0.1, 0.1, 0.1))
 
         return Scene("inside", [house, ground1, ground2, monster, fabienne] + boxes + [stool],
