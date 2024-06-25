@@ -94,7 +94,7 @@ class Game:
 
         while not self.window.should_close():
             delta = time.time() - start_time
-            delta = min(delta, delay)  # limita o delta a um valor máximo
+            delta = max(min(delta, delay), 1e-6)  # limita o delta a um valor máximo
 
             if not delta < delay:
                 time.sleep(delay - delta)
