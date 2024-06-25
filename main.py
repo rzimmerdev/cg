@@ -92,19 +92,19 @@ class MainScene(Scene):
 
     def register(self):
         sky = self.engine.register_model("sky", "models/sky")
-        terrain = self.engine.register_model("terrain", "models/terrain")
+        terrain = self.engine.register_model("terrain", "models/terrain") # vn
 
         ground = self.engine.register_model("ground", "models/ground")
         house = self.engine.register_model("house", "models/house")
         cube = self.engine.register_model("cube", "models/caixa")
-        monster = self.engine.register_model("monster", "models/monster")
+        monster = self.engine.register_model("monster", "models/monster") # vn
         fabienne = self.engine.register_model("fabienne", "models/fabienne")
         stool = self.engine.register_model("stool", "models/stool")
 
         denis = self.engine.register_model("denis", "models/denis")
         tree = self.engine.register_model("tree", "models/tree")
         grass = self.engine.register_model("grass", "models/grass")
-        horse = self.engine.register_model("horse", "models/horse")
+        horse = self.engine.register_model("horse", "models/horse") # vn
 
         self.models = {
             "sky": sky,
