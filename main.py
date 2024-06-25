@@ -97,7 +97,7 @@ class MainScene(Scene):
         ground = self.engine.register_model("ground", "models/ground")
         house = self.engine.register_model("house", "models/house")
         cube = self.engine.register_model("cube", "models/caixa")
-        monster = self.engine.register_model("monster", "models/monster") # vn
+        monster = self.engine.register_model("monster", "models/monster")  # vn
         fabienne = self.engine.register_model("fabienne", "models/fabienne")
         stool = self.engine.register_model("stool", "models/stool")
         lantern = self.engine.register_model("lantern", "models/lantern")
@@ -165,8 +165,13 @@ class MainScene(Scene):
         """
         # house model
         house = Object(self.models["house"])
-        ground = Object(self.models["ground"])
-        ground.rescale((10, 0.25, 7))
+        ground1 = Object(self.models["ground"])
+        ground1.rescale((6, 0.25, 4))
+        # ground1.move((0, 0, 1))
+
+        ground2 = Object(self.models["ground"])
+        ground2.rescale((1, 0.25, 1))
+        ground2.move((10, 1, 10))
 
         # boxes
         a, b = -3, 3
@@ -198,7 +203,8 @@ class MainScene(Scene):
         lantern.move((0, 1, 0))
         lantern.rescale((0.1, 0.1, 0.1))
 
-        return Scene("inside", [house, ground, monster, fabienne] + boxes + [stool], [ambience, lantern])
+        return Scene("inside", [house, ground1, ground2, monster, fabienne] + boxes + [stool],
+                     [ambience, lantern])
 
     @property
     def outside(self):

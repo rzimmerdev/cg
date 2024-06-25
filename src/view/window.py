@@ -57,6 +57,9 @@ class Window:
     def set_cursor_callback(self, callback):
         glfw.set_cursor_pos_callback(self.window, callback)
 
+    def set_scroll_callback(self, callback):
+        glfw.set_scroll_callback(self.window, callback)
+
     def set_key_callback(self, callback):
         glfw.set_key_callback(self.window, callback)
 

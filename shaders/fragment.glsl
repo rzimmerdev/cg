@@ -43,11 +43,10 @@ void main() {
         specular += specularColor * spec * lightColor[i]; // k_s * (V * R)^n * I_s
 
         // Distance attenuation
-        // float distance = length(lightPos[i] - fragPos) / 100.0;
-        // float attenuation = 1.0 / (distance * distance);
-        // float attenuation = 1.0;
+        float distance = length(lightPos[i] - out_position);
+        float attenuation = 1.0 / (distance * distance);
 
-        // diffuse *= attenuation;
+        diffuse *= attenuation;
         // specular *= attenuation;
     }
 

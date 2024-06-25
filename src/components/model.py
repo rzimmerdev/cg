@@ -83,7 +83,7 @@ class Model:
         self.k_a = 0.1
         self.k_d = 0.7
         self.k_s = 0.2
-        self.a_n = 0.1
+        self.a_n = 1
 
         self.shader_program = shader_program
         if not isinstance(shader_program, ShaderProgram):

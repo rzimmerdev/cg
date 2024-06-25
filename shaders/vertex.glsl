@@ -14,5 +14,5 @@ void main(){
     gl_Position = projection * view * model * vec4(position,1.0);
     out_texture = vec2(texture_coord);
     out_normal = normal;
-    out_position = position;
+    out_position = vec3(model * vec4(position,1.0));
 }

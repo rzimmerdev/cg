@@ -59,6 +59,7 @@ class Game:
         self.window.create_window()
         self.window.set_cursor_callback(self.mouse_callback)
         self.window.set_key_callback(self.key_callback)
+        self.window.set_scroll_callback(self.scroll_callback)
         self.create_shader()
 
     def create_shader(self):
@@ -164,6 +165,11 @@ class Game:
                 self.selected_keys.remove(key)
             except KeyError:
                 pass
+
+    def scroll_callback(self, window, xoffset, yoffset):
+        # increase or decrease player speed
+        if self.current_player:
+            self.current_player.speed = max(0.01, min(10, self.current_player.speed + yoffset * 0.1))
 
     def mouse_callback(self, window, xpos, ypos):
         """
