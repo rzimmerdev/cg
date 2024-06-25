@@ -2,7 +2,7 @@ import random
 from typing import Dict, Set
 
 from src.game import Game
-from src.components import Object, Scene, Model, Player, SphereBound, NormalBound
+from src.components import Object, LightSource, Scene, Model, Player, SphereBound, NormalBound
 
 import glfw
 import glm
@@ -100,6 +100,7 @@ class MainScene(Scene):
         monster = self.engine.register_model("monster", "models/monster") # vn
         fabienne = self.engine.register_model("fabienne", "models/fabienne")
         stool = self.engine.register_model("stool", "models/stool")
+        lantern = self.engine.register_model("lantern", "models/lantern")
 
         denis = self.engine.register_model("denis", "models/denis")
         tree = self.engine.register_model("tree", "models/tree")
@@ -119,6 +120,7 @@ class MainScene(Scene):
             "grass": grass,
             "horse": horse,
             "stool": stool,
+            "lantern": lantern
         }
 
         self.engine.register_scene(self)
@@ -151,8 +153,10 @@ class MainScene(Scene):
         normal_bound = NormalBound((0, -1, 0), (0, -0.7, 0))
         self.engine.physics.register_object(normal_bound)
 
+        ambience = LightSource(luminance=(2, 2, 2))
+
         # return Scene("environment", [sky, terrain])
-        return Scene("environment", [sky, terrain] + [])
+        return Scene("environment", [sky, terrain] + [], [ambience])
 
     @property
     def inside(self):
@@ -188,7 +192,13 @@ class MainScene(Scene):
         stool.rescale((0.5, 0.5, 0.5))
         stool.move((4, 0, 3))
 
-        return Scene("inside", [house, ground, monster, fabienne] + boxes + [stool])
+        ambience = LightSource(luminance=(1, 1, 1))
+
+        lantern = LightSource(self.models['lantern'], luminance=(1, 1, 1))
+        lantern.move((0, 1, 0))
+        lantern.rescale((0.1, 0.1, 0.1))
+
+        return Scene("inside", [house, ground, monster, fabienne] + boxes + [stool], [ambience, lantern])
 
     @property
     def outside(self):

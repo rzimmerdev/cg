@@ -1,13 +1,11 @@
 import os
-from typing import List, Tuple
+from typing import List
 
 from OpenGL.GL import *
 import glm
 import numpy as np
 from OpenGL.GL.shaders import ShaderProgram
 from PIL import Image
-
-from src.components.light import LightSource
 
 
 def load_texture(file_path) -> int:
@@ -85,7 +83,7 @@ class Model:
         self.k_a = 0.1
         self.k_d = 0.7
         self.k_s = 0.2
-        self.a_n = 1
+        self.a_n = 0.1
 
         self.shader_program = shader_program
         if not isinstance(shader_program, ShaderProgram):
@@ -211,7 +209,7 @@ class Model:
 
         self.setup_buffers()
 
-    def draw(self, matrix, light_sources: List[LightSource] = None):
+    def draw(self, matrix, light_sources: List = None):
         if not self.vao:
             self.setup_buffers()
 
@@ -225,15 +223,14 @@ class Model:
 
         glUniform1f(glGetUniformLocation(self.shader_program, "shininess"), self.a_n)
 
-        glUniform1i(glGetUniformLocation(self.shader_program, "numLights"),
-                    int(len(light_sources) if light_sources else 0))
+        num_lights = int(len(light_sources) - 1 if light_sources else 0)
+        glUniform1i(glGetUniformLocation(self.shader_program, "numLights"), num_lights)
 
-        if light_sources:
-            # first light source is ambient light
+        ambient_light = glm.vec3(0.0, 0.0, 0.0) if not light_sources else light_sources[0].luminance
 
-            glUniform3fv(glGetUniformLocation(self.shader_program, "ambientLight"),
-                         1, glm.value_ptr(light_sources[0].luminance))
+        glUniform3fv(glGetUniformLocation(self.shader_program, "ambientLight"), 1, glm.value_ptr(ambient_light))
 
+        if num_lights > 0:
             light_sources = light_sources[1:10]
 
             # Send light positions and colors to the shader
@@ -254,3 +251,8 @@ class Model:
             glBindVertexArray(0)
 
         glBindTexture(GL_TEXTURE_2D, 0)
+
+        # remove light sources
+        glUniform1i(glGetUniformLocation(self.shader_program, "numLights"), 0)
+        glUniform3fv(glGetUniformLocation(self.shader_program, "ambientLight"), 1,
+                     glm.value_ptr(glm.vec3(0.0, 0.0, 0.0)))

@@ -128,6 +128,8 @@ class Game:
         if self.current_player:
             self.current_player.apply_movement(self.selected_keys, self.camera.front, self.camera.up, delta)
             self.camera.position = self.current_player.position
+            # update cameraPos
+            self.camera.update(self.shader_program)
 
         self.engine.tick(self.selected_keys, delta)
 

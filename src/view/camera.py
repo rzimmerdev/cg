@@ -3,6 +3,7 @@ from typing import Set
 
 import glfw
 import glm
+from OpenGL.GL import glUniform3fv, glGetUniformLocation
 
 
 @dataclass
@@ -52,3 +53,7 @@ class Camera:
 
         if glfw.KEY_LEFT_SHIFT in key_actions:
             self.position -= self.up * self.speed * delta
+
+    def update(self, shader_program):
+        # update in vec3 cameraPos
+        glUniform3fv(glGetUniformLocation(shader_program, "cameraPos"), 1, glm.value_ptr(self.position))

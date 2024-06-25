@@ -104,3 +104,15 @@ class InteractiveObject(Object):
     def interact(self, obj: Union["InteractiveObject", BoundObject], delta):
         if isinstance(obj, BoundObject):
             self.position = obj.clip(self.position)
+
+
+class LightSource(InteractiveObject):
+    def __init__(self, model: Model = None, luminance=None):
+        super().__init__(model)
+        if isinstance(luminance, glm.vec3):
+            self.luminance = luminance
+        else:
+            self.luminance = glm.vec3(1.0, 1.0, 1.0) if luminance is None else glm.vec3(*luminance)
+
+    def draw(self, lights: list = None):
+        super().draw(None)

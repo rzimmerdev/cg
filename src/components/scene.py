@@ -2,13 +2,14 @@ from typing import List, Dict
 
 import glm
 
-from .object import Object
+from .object import Object, LightSource
 
 
 class Scene:
-    def __init__(self, name: str, objects: List[Object] = None):
+    def __init__(self, name: str, objects: List[Object] = None, lights: List[LightSource] = None):
         self.name = name
         self.objects: List[Object] = []
+        self.lights: List[LightSource] = []
         self.sub_scenes: Dict[str, "Scene"] = {}
 
         self.position = glm.vec3(0.0, 0.0, 0.0)
@@ -17,27 +18,34 @@ class Scene:
 
         if objects:
             self.add_object(objects)
+        if lights:
+            self.add_lights(lights)
 
         self.tick_methods = []
 
     def add_object(self, obj: List | Object):
-        if isinstance(obj, Object):
+        if isinstance(obj, list):
+            self.objects.extend(obj)
+        else:
             self.objects.append(obj)
-        elif isinstance(obj, list):
-            for o in obj:
-                if isinstance(o, Object):
-                    self.objects.append(o)
-                elif isinstance(o, list):
-                    self.add_object(o)
+
+    def add_lights(self, lights: List | LightSource):
+        if isinstance(lights, list):
+            self.lights.extend(lights)
+        else:
+            self.lights.append(lights)
 
     def add_scene(self, scene: "Scene"):
         self.sub_scenes[scene.name] = scene
 
-    def draw(self):
+    def draw(self, lights: list = None):
+        lights = lights + self.lights if lights else self.lights
+        for light in self.lights:
+            light.draw()
         for obj in self.objects:
-            obj.draw()
+            obj.draw(lights)
         for scene in self.sub_scenes.values():
-            scene.draw()
+            scene.draw(lights)
 
     def move(self, position: tuple):
         self.position += glm.vec3(*position)
