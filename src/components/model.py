@@ -7,6 +7,8 @@ import numpy as np
 from OpenGL.GL.shaders import ShaderProgram
 from PIL import Image
 
+from src.components.light import LightSource
+
 
 def load_texture(file_path) -> int:
     """
@@ -39,9 +41,9 @@ def read_wavefront(file_path):
     """
     vertices = []
     texture_coords = []
+    normals = []
     material = "default"
     faces = {material: []}
-    normals = {material: []}
 
     with open(file_path, 'r') as file:
         for line in file:
@@ -58,7 +60,7 @@ def read_wavefront(file_path):
                 face = [list(map(int, f.split('/'))) for f in face]
                 faces[material].append(face)
             elif line.startswith('vn '):
-                normals[material].append(list(map(float, line.strip().split()[1:4])))
+                normals.append(list(map(float, line.strip().split()[1:4])))
 
     if not faces["default"]:
         faces.pop("default")
@@ -115,8 +117,10 @@ class Model:
 
     def setup_buffers(self):
         """
-        Cria e configura os buffers de vértices e coordenadas de textura.
+        Cria e configura os buffers de vértices, coordenadas de textura e normais.
         Passo inicial para renderizar o modelo, carregando os dados na GPU.
+
+        Precisa ter setado self.triangle_vertices, self.textures e self.triangle_normals
 
         :return: None
         """
@@ -128,18 +132,25 @@ class Model:
 
         total_vertices = np.concatenate(list(self.triangle_vertices.values()))
         total_texture_coords = np.concatenate(list(self.textures.values()))
+        total_normals = np.concatenate(list(self.triangle_normals.values()))
 
-        # fazer passagem para o buffer das normais
+        vertices_size = total_vertices.nbytes
+        textures_size = total_texture_coords.nbytes
+        normals_size = total_normals.nbytes
 
-        glBufferData(GL_ARRAY_BUFFER, total_vertices.nbytes + total_texture_coords.nbytes, None, GL_STATIC_DRAW)
-        glBufferSubData(GL_ARRAY_BUFFER, 0, total_vertices.nbytes, total_vertices)
-        glBufferSubData(GL_ARRAY_BUFFER, total_vertices.nbytes, total_texture_coords.nbytes, total_texture_coords)
+        glBufferData(GL_ARRAY_BUFFER, vertices_size + textures_size + normals_size, None, GL_STATIC_DRAW)
+        glBufferSubData(GL_ARRAY_BUFFER, 0, vertices_size, total_vertices)
+        glBufferSubData(GL_ARRAY_BUFFER, vertices_size, textures_size, total_texture_coords)
+        glBufferSubData(GL_ARRAY_BUFFER, vertices_size + textures_size, normals_size, total_normals)
 
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, None)
         glEnableVertexAttribArray(0)
 
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(total_vertices.nbytes))
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(vertices_size))
         glEnableVertexAttribArray(1)
+
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(vertices_size + textures_size))
+        glEnableVertexAttribArray(2)
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
@@ -193,7 +204,6 @@ class Model:
                             normals = self.normals[face[idx][2] - 1]
                             triangle_normals.extend(normals)
 
-
             # just copy normals to equate number of new faces
             self.triangle_vertices[material] = np.array(triangle_vertice, dtype=np.float32)
             self.textures[material] = np.array(texture_vertice, dtype=np.float32)
@@ -201,13 +211,9 @@ class Model:
 
         self.setup_buffers()
 
-    def draw(self, matrix, light_sources: List[Tuple[glm.vec3, glm.vec3]] = None, ambient_light: glm.vec3 = None):
+    def draw(self, matrix, light_sources: List[LightSource] = None):
         if not self.vao:
             self.setup_buffers()
-
-        if ambient_light is None:
-            ambient_light = glm.vec3(1.0, 1.0, 1.0)
-            glUniform3fv(glGetUniformLocation(self.shader_program, "ambientLight"), 1, glm.value_ptr(ambient_light))
 
         # Send the model matrix to the shader
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, glm.value_ptr(matrix))
@@ -219,13 +225,20 @@ class Model:
 
         glUniform1f(glGetUniformLocation(self.shader_program, "shininess"), self.a_n)
 
+        glUniform1i(glGetUniformLocation(self.shader_program, "numLights"),
+                    int(len(light_sources) if light_sources else 0))
+
         if light_sources:
-            # Limit the number of lights to MAX_LIGHTS
-            light_sources = light_sources[:10]
+            # first light source is ambient light
+
+            glUniform3fv(glGetUniformLocation(self.shader_program, "ambientLight"),
+                         1, glm.value_ptr(light_sources[0].luminance))
+
+            light_sources = light_sources[1:10]
 
             # Send light positions and colors to the shader
-            light_positions = [light[1] for light in light_sources]
-            light_colors = [light[0] for light in light_sources]
+            light_positions = [light.position for light in light_sources]
+            light_colors = [light.luminance for light in light_sources]
 
             for i, (position, color) in enumerate(zip(light_positions, light_colors)):
                 glUniform3fv(glGetUniformLocation(self.shader_program, f"lightPos[{i}]"), 1, glm.value_ptr(position))

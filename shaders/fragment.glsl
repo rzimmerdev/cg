@@ -9,7 +9,7 @@ uniform vec3 cameraPos;
 uniform float ambientColor; // k_a
 uniform vec3 ambientLight; // I_a
 
-uniform float num_lights;
+uniform int numLights;
 uniform vec3 lightPos[MAX_LIGHTS]; // Array of light positions
 uniform vec3 lightColor[MAX_LIGHTS]; // Array of light colors
 uniform float diffuseColor; // k_d
@@ -31,7 +31,7 @@ void main() {
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
 
-    for (int i = 0; i < 0; ++i) {
+    for (int i = 0; i < numLights; ++i) {
         vec3 lightDir = normalize(lightPos[i] - fragPos);
         vec3 reflectDir = reflect(-lightDir, normal);
 

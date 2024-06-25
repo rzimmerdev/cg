@@ -9,9 +9,9 @@ from .model import Model
 class Object:
     def __init__(self, model: Model = None):
         self.model = model
-        self.position = glm.vec3(0.0, 0.0, 0.0)
-        self.rotation = glm.vec3(0.0, 0.0, 0.0)
-        self.scale = glm.vec3(1.0, 1.0, 1.0)
+        self.position: glm.vec3 = glm.vec3(0.0, 0.0, 0.0)
+        self.rotation: glm.vec3 = glm.vec3(0.0, 0.0, 0.0)
+        self.scale: glm.vec3 = glm.vec3(1.0, 1.0, 1.0)
         self.speed = 2
 
         self.tick_methods = []
@@ -19,7 +19,7 @@ class Object:
     def set_model(self, model):
         self.model = model
 
-    def draw(self):
+    def draw(self, lights: list = None):
         if not self.model:
             return
         matrix = glm.mat4(1.0)
@@ -28,7 +28,7 @@ class Object:
         matrix = glm.rotate(matrix, self.rotation.y, glm.vec3(0.0, 1.0, 0.0))
         matrix = glm.rotate(matrix, self.rotation.z, glm.vec3(0.0, 0.0, 1.0))
         matrix = glm.scale(matrix, self.scale)
-        self.model.draw(matrix)
+        self.model.draw(matrix, lights)
 
     def rescale(self, factor: tuple, speed=1):
         self.scale *= glm.vec3(*factor) * speed
